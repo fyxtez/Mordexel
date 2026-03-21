@@ -2,7 +2,7 @@ use std::{io, path::PathBuf, sync::Arc};
 
 use crate::{
     error::TelegramError,
-    types::{TelegramCredentials, InitializationData},
+    types::{InitializationData, TelegramCredentials},
 };
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;

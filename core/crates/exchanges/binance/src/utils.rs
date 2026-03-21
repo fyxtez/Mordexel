@@ -4,7 +4,11 @@ use hmac::{Hmac, Mac};
 use reqwest::Method;
 use sha2::Sha256;
 
-use crate::{constants::{FUTURES, TESTNET_FUTURES}, error::{BinanceApiError, BinanceError}, types::BinanceConfig};
+use crate::{
+    constants::{FUTURES, TESTNET_FUTURES},
+    error::{BinanceApiError, BinanceError},
+    types::BinanceConfig,
+};
 
 const DEFAULT_RECV_WINDOW: u64 = 5000;
 
@@ -93,7 +97,6 @@ pub fn build_query(params: &[(&str, String)]) -> String {
         .join("&")
 }
 
-
 pub fn load_binance_config(is_test: bool) -> BinanceConfig {
     let (key_name, secret_name, base_url) = if is_test {
         (
@@ -102,18 +105,12 @@ pub fn load_binance_config(is_test: bool) -> BinanceConfig {
             TESTNET_FUTURES,
         )
     } else {
-        (
-            "BINANCE_API_KEY",
-            "BINANCE_API_SECRET",
-            FUTURES,
-        )
+        ("BINANCE_API_KEY", "BINANCE_API_SECRET", FUTURES)
     };
 
-    let api_key = env::var(key_name)
-        .unwrap_or_else(|_| panic!("{key_name} must be set"));
+    let api_key = env::var(key_name).unwrap_or_else(|_| panic!("{key_name} must be set"));
 
-    let api_secret = env::var(secret_name)
-        .unwrap_or_else(|_| panic!("{secret_name} must be set"));
+    let api_secret = env::var(secret_name).unwrap_or_else(|_| panic!("{secret_name} must be set"));
 
     BinanceConfig {
         api_key,
@@ -121,7 +118,6 @@ pub fn load_binance_config(is_test: bool) -> BinanceConfig {
         base_url: base_url.to_string(),
     }
 }
-
 
 #[cfg(test)]
 mod tests_timestamp {

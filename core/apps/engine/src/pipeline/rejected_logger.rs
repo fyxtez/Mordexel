@@ -5,7 +5,7 @@ use tracing::{info, warn};
 pub async fn run(mut rx: mpsc::Receiver<RejectedTrade>) {
     info!("rejected_trade_logger started");
 
-    while let Some(rejected_trade) = rx.recv().await {
+    while let Some(_rejected_trade) = rx.recv().await {
         // dbg!(&rejected_trade);
     }
 

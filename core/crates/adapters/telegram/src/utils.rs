@@ -1,6 +1,6 @@
 use std::env;
 
-use crate::types::{TelegramCredentials, TelegramConfig};
+use crate::types::{TelegramConfig, TelegramCredentials};
 
 pub fn load_telegram_config() -> TelegramConfig {
     let api_id = env::var("TELEGRAM_API_ID").expect("TELEGRAM_API_ID must be set");

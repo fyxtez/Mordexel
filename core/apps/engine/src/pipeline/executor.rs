@@ -3,7 +3,7 @@ use execution::exchange::Exchange;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 
-pub async fn run(mut rx: mpsc::Receiver<ApprovedTrade>,exchange: impl Exchange) {
+pub async fn run(mut rx: mpsc::Receiver<ApprovedTrade>, exchange: impl Exchange) {
     info!("approved_trade_executor started");
 
     while let Some(approved_trade) = rx.recv().await {
@@ -15,8 +15,14 @@ pub async fn run(mut rx: mpsc::Receiver<ApprovedTrade>,exchange: impl Exchange) 
         );
 
         // TODO: Await in hot path? hmmmm... think of spawning a thread for this.
-        let _ = exchange.account_info().await;
-
+        match exchange.account_info().await {
+            Ok(account_info) => {
+                dbg!(account_info);
+            }
+            Err(error) => {
+                dbg!(error);
+            }
+        }
     }
 
     warn!("approved_trade_executor stopped: all senders dropped");

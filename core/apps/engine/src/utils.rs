@@ -1,8 +1,3 @@
-use std::env;
-
-use adapter_telegram::types::{TelegramConfig, TelegramCredentials};
-use binance::types::BinanceConfig;
-
 pub fn get_build_version() -> &'static str {
     option_env!("BUILD_VERSION").unwrap_or("dev")
 }
@@ -21,7 +16,7 @@ pub fn init_tracing() {
 pub fn create_reqwest_client() -> reqwest::Client {
     use std::time::Duration;
 
-    let client = reqwest::Client::builder()
+    reqwest::Client::builder()
         .user_agent("Pulsgram/1.0")
         .connect_timeout(Duration::from_secs(5))
         // Network safety
@@ -40,7 +35,6 @@ pub fn create_reqwest_client() -> reqwest::Client {
         .tcp_keepalive(Duration::from_secs(60))
         // Keep connections alive
         // Sends periodic “I’m alive” signal on TCP connection.
-        .build().unwrap(); //Allow unwrap cause request client must exist on startup. 
-
-    client
+        .build()
+        .unwrap() //Allow unwrap cause request client must exist on startup. 
 }

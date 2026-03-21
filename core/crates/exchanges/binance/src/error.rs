@@ -36,14 +36,10 @@ impl From<BinanceError> for ExchangeError {
             BinanceError::Api(api_err) => ExchangeError::Rejected {
                 message: api_err.to_string(),
             },
-            BinanceError::InvalidInput(msg) => ExchangeError::InvalidRequest {
-                message: msg,
-            },
+            BinanceError::InvalidInput(msg) => ExchangeError::InvalidRequest { message: msg },
         }
     }
 }
-
-
 
 #[derive(Debug, serde::Deserialize)]
 pub struct BinanceApiError {

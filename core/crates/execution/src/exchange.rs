@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use domain::{side::Side, symbol::Symbol};
 
-use crate::error::ExchangeError;
+use crate::{error::ExchangeError, types::AccountInfo};
 
 #[async_trait]
 pub trait Exchange: Send + Sync {
@@ -20,7 +20,5 @@ pub trait Exchange: Send + Sync {
         price: f64,
     ) -> Result<(), ExchangeError>;
 
-    async fn account_info(
-        &self,
-    ) -> Result<(),ExchangeError>;
+    async fn account_info(&self) -> Result<AccountInfo, ExchangeError>;
 }
