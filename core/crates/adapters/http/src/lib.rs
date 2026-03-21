@@ -8,7 +8,6 @@ use axum::routing::{get, post};
 use axum::{Router, body::Body, extract::Request, http::StatusCode, response::IntoResponse};
 use domain::ingress_events::IngressEvent;
 use std::io;
-use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tracing::{error, info};
@@ -20,7 +19,7 @@ use crate::types::TradeRequest;
 pub async fn start_api_server(
     address: &str,
     port: u16,
-    tx: Arc<mpsc::Sender<IngressEvent>>,
+    tx: mpsc::Sender<IngressEvent>,
 ) -> Result<(), io::Error> {
     let listener = TcpListener::bind(format!("{}:{}", address, port)).await?;
 

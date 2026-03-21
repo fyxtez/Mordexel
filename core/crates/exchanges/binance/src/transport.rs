@@ -37,12 +37,12 @@ impl<'a> Transport<'a> {
 fn parse_binance_json<T: DeserializeOwned>(raw: &str) -> Result<T, BinanceError> {
     let value: serde_json::Value = serde_json::from_str(raw)?;
 
-    if let Some(code) = value.get("code").and_then(|c| c.as_i64()) &&
-        code < 0 {
-            let api_err = serde_json::from_value(value)?;
-            return Err(BinanceError::Api(api_err));
-        }
-    
+    if let Some(code) = value.get("code").and_then(|c| c.as_i64())
+        && code < 0
+    {
+        let api_err = serde_json::from_value(value)?;
+        return Err(BinanceError::Api(api_err));
+    }
 
     Ok(serde_json::from_value(value)?)
 }

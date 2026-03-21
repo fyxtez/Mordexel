@@ -5,8 +5,6 @@ pub mod utils;
 mod dialogs;
 mod initialize;
 
-use std::sync::Arc;
-
 use domain::ingress_events::{IngressEvent, TelegramMessageEvent};
 use grammers_client::client::UpdatesConfiguration;
 use tokio::sync::mpsc;
@@ -15,7 +13,7 @@ use crate::{initialize::init, types::TelegramConfig};
 
 use tracing::{error, info, warn};
 
-pub async fn run(config: TelegramConfig, tx: Arc<mpsc::Sender<IngressEvent>>) {
+pub async fn run(config: TelegramConfig, tx: mpsc::Sender<IngressEvent>) {
     info!(
         signal_source_id = config.signal_source_id,
         session_path = %config.session_path.display(),
