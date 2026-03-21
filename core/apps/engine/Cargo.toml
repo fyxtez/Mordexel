@@ -1,0 +1,18 @@
+[package]
+name = "engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotenvy = "0.15.7"
+adapter_telegram = { path = "../../crates/adapters/telegram" }
+adapter_http = { path = "../../crates/adapters/http" }
+domain = {path = "../../crates/domain"}
+signals = {path = "../../crates/signals"}
+
+[features]
+default = []         
+production = []  
