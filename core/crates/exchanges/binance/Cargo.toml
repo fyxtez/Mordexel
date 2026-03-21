@@ -5,5 +5,13 @@ edition = "2024"
 
 [dependencies]
 async-trait.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 domain = {path = "../../domain"}
 execution ={ path = "../../execution"}
+
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"

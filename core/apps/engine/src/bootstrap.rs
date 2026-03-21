@@ -1,4 +1,6 @@
 use adapter_http::start_api_server;
+use adapter_telegram::utils::load_telegram_config;
+use binance::{Binance, client::BinanceClient, utils::load_binance_config};
 use domain::{
     approved_trade::ApprovedTrade, ingress_events::IngressEvent, rejected_trade::RejectedTrade,
     trade_intent::TradeIntent,
@@ -9,7 +11,7 @@ use std::sync::Arc;
 use crate::{
     execution_policy::ExecutionPolicy,
     pipeline::{builder, evaluator, executor, rejected_logger},
-    utils::{get_build_version, init_tracing, load_telegram_config},
+    utils::{create_reqwest_client, get_build_version, init_tracing},
 };
 use tokio::sync::mpsc::{self, Sender};
 use tracing::{debug, error, info};
@@ -67,8 +69,20 @@ pub async fn run() {
         .await;
     });
 
+
+    let binance_config = load_binance_config(true);
+
+    let binance_client = Binance {
+        client:BinanceClient {
+            request_client: create_reqwest_client(),
+            base_url: binance_config.base_url,
+            api_key:binance_config.api_key,
+            api_secret:binance_config.api_secret
+        }
+    };
+
     let approved_trade_executor_handle = tokio::spawn(async move {
-        executor::run(approved_trade_rx).await;
+        executor::run(approved_trade_rx,binance_client).await;
     });
 
     let rejected_trade_logger_handle = tokio::spawn(async move {

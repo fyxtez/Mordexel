@@ -2,7 +2,7 @@ use std::{io, path::PathBuf, sync::Arc};
 
 use crate::{
     error::TelegramError,
-    types::{Credentials, InitializationData},
+    types::{TelegramCredentials, InitializationData},
 };
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
@@ -10,7 +10,7 @@ use grammers_session::storages::SqliteSession;
 use tracing::info;
 
 pub async fn init(
-    credentials: Credentials,
+    credentials: TelegramCredentials,
     session_path: &PathBuf,
 ) -> Result<InitializationData, TelegramError> {
     let sender_pool = create_sender_pool(session_path, credentials.api_id).await?;

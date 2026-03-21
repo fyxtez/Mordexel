@@ -19,4 +19,8 @@ pub trait Exchange: Send + Sync {
         quantity: f64,
         price: f64,
     ) -> Result<(), ExchangeError>;
+
+    async fn account_info(
+        &self,
+    ) -> Result<(),ExchangeError>;
 }

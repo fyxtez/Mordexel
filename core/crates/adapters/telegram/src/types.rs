@@ -5,7 +5,7 @@ use grammers_session::updates::UpdatesLike;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 #[derive(Debug)]
-pub struct Credentials {
+pub struct TelegramCredentials {
     pub api_id: i32,
     pub api_hash: String,
     pub phone_number: String,
@@ -13,10 +13,10 @@ pub struct Credentials {
 }
 
 #[derive(Debug)]
-pub struct Config {
+pub struct TelegramConfig {
     pub signal_source_id: i64,
     pub session_path: PathBuf,
-    pub credentials: Credentials,
+    pub credentials: TelegramCredentials,
 }
 
 pub struct InitializationData {

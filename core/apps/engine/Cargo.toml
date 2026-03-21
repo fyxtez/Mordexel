@@ -7,11 +7,14 @@ edition = "2024"
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+reqwest.workspace = true
 dotenvy = "0.15.7"
 adapter_telegram = { path = "../../crates/adapters/telegram" }
 adapter_http = { path = "../../crates/adapters/http" }
 domain = {path = "../../crates/domain"}
 signals = {path = "../../crates/signals"}
+binance = {path = "../../crates/exchanges/binance"}
+execution = {path = "../../crates/execution"}
 
 [features]
 default = []         
