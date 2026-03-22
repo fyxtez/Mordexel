@@ -20,3 +20,12 @@ pub enum ExchangeError {
     #[error("internal exchange error: {message}")]
     Internal { message: String },
 }
+
+#[derive(Debug, Error)]
+pub enum ExecutionError {
+    #[error("exchange error: {0}")]
+    Exchange(#[from] ExchangeError),
+
+    #[error("invalid scheduled entry: {message}")]
+    InvalidScheduledEntry { message: String },
+}

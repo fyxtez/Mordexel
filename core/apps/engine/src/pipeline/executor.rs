@@ -1,9 +1,16 @@
 use domain::approved_trade::ApprovedTrade;
-use execution::exchange::Exchange;
+use execution::{
+    entry::{entry_model::EntryModel, execute_trade},
+    exchange::Exchange,
+};
 use tokio::sync::mpsc;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
-pub async fn run(mut rx: mpsc::Receiver<ApprovedTrade>, exchange: impl Exchange) {
+pub async fn run(
+    mut rx: mpsc::Receiver<ApprovedTrade>,
+    exchange: impl Exchange,
+    entry_model: EntryModel,
+) {
     info!("approved_trade_executor started");
 
     while let Some(approved_trade) = rx.recv().await {
@@ -15,12 +22,10 @@ pub async fn run(mut rx: mpsc::Receiver<ApprovedTrade>, exchange: impl Exchange)
         );
 
         // TODO: Await in hot path? hmmmm... think of spawning a thread for this.
-        match exchange.account_info().await {
-            Ok(account_info) => {
-                dbg!(account_info);
-            }
-            Err(error) => {
-                dbg!(error);
+        match execute_trade(&exchange, &approved_trade, &entry_model).await {
+            Ok(_) => {}
+            Err(err) => {
+                error!(error=%err,trade=%approved_trade,"Error executing trade:");
             }
         }
     }

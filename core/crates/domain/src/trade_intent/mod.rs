@@ -15,3 +15,25 @@ pub struct TradeIntent {
     pub timeframe: Timeframe,
     pub stop_loss: f64,
 }
+
+use std::fmt;
+
+impl fmt::Display for TradeIntent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "TradeIntent [{}]\n  Symbol: {}\n  Side: {}\n  Entry: {}\n  Stop Loss: {}\n  Targets: [{}]\n  Timeframe: {}",
+            self.intent_id,
+            self.symbol,
+            self.side,
+            self.entry,
+            self.stop_loss,
+            self.targets
+                .iter()
+                .map(|t| t.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+            self.timeframe
+        )
+    }
+}

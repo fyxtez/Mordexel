@@ -7,14 +7,14 @@ use crate::{error::ExchangeError, types::AccountInfo};
 pub trait Exchange: Send + Sync {
     async fn place_market_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
     ) -> Result<(), ExchangeError>;
 
     async fn place_limit_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
         price: f64,

@@ -1,12 +1,12 @@
+use execution::entry::entry_model::EntryModel;
 use tokio::sync::mpsc::Sender;
-use tracing::error;
 
-use adapter_http::start_api_server;
 use domain::ingress_events::IngressEvent;
 
 use crate::{
     bootstrap::RuntimeDeps,
     pipeline::{builder, evaluator, executor, rejected_logger},
+    utils::start_server,
 };
 
 pub async fn run_runtime(runtime: RuntimeDeps) {
@@ -20,7 +20,7 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
     let ingress_event_tx_clone = channels.ingress_event_tx.clone();
 
     let telegram_handle = {
-        let tx = channels.ingress_event_tx;
+        let tx: Sender<IngressEvent> = channels.ingress_event_tx;
         tokio::spawn(async move {
             adapter_telegram::run(telegram_config, tx).await;
         })
@@ -41,7 +41,7 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
     });
 
     let approved_trade_executor_handle = tokio::spawn(async move {
-        executor::run(channels.approved_trade_rx, binance).await;
+        executor::run(channels.approved_trade_rx, binance, EntryModel::Instant).await;
     });
 
     let rejected_trade_logger_handle = tokio::spawn(async move {
@@ -54,7 +54,14 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         })
     };
 
-    let _ = tokio::join!(
+    let (
+        telegram_result,
+        builder_result,
+        evaluator_result,
+        executor_result,
+        rejected_logger_result,
+        http_result,
+    ) = tokio::join!(
         telegram_handle,
         trade_intent_builder_handle,
         trade_intent_evaluator_handle,
@@ -62,21 +69,23 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         rejected_trade_logger_handle,
         http_handle,
     );
-}
 
-async fn start_server(tx: Sender<IngressEvent>) {
-    let address = if cfg!(feature = "production") {
-        "0.0.0.0"
-    } else {
-        "127.0.0.1"
-    };
-
-    let port = 8656;
-
-    match start_api_server(address, port, tx).await {
-        Ok(_) => {}
-        Err(error) => {
-            error!(error = %error, "Failed starting api server.");
-        }
+    if let Err(err) = telegram_result {
+        tracing::error!(error = %err, "telegram task panicked");
+    }
+    if let Err(err) = builder_result {
+        tracing::error!(error = %err, "builder task panicked");
+    }
+    if let Err(err) = evaluator_result {
+        tracing::error!(error = %err, "evaluator task panicked");
+    }
+    if let Err(err) = executor_result {
+        tracing::error!(error = %err, "executor task panicked");
+    }
+    if let Err(err) = rejected_logger_result {
+        tracing::error!(error = %err, "rejected logger task panicked");
+    }
+    if let Err(err) = http_result {
+        tracing::error!(error = %err, "http task panicked");
     }
 }

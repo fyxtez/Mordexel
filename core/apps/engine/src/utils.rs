@@ -1,3 +1,8 @@
+use adapter_http::start_api_server;
+use domain::ingress_events::IngressEvent;
+use tokio::sync::mpsc::Sender;
+use tracing::error;
+
 pub fn get_build_version() -> &'static str {
     option_env!("BUILD_VERSION").unwrap_or("dev")
 }
@@ -37,4 +42,21 @@ pub fn create_reqwest_client() -> reqwest::Client {
         // Sends periodic “I’m alive” signal on TCP connection.
         .build()
         .unwrap() //Allow unwrap cause request client must exist on startup. 
+}
+
+pub async fn start_server(tx: Sender<IngressEvent>) {
+    let address = if cfg!(feature = "production") {
+        "0.0.0.0"
+    } else {
+        "127.0.0.1"
+    };
+
+    let port = 8656;
+
+    match start_api_server(address, port, tx).await {
+        Ok(_) => {}
+        Err(error) => {
+            error!(error = %error, "Failed starting api server.");
+        }
+    }
 }

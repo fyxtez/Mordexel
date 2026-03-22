@@ -12,7 +12,10 @@ use execution::{error::ExchangeError, exchange::Exchange, types::AccountInfo};
 use reqwest::Method;
 
 use crate::{
-    client::BinanceClient, endpoints::ACCOUNT_INFO, error::BinanceError, types::FuturesAccountInfo,
+    client::BinanceClient,
+    endpoints::{ACCOUNT_INFO, ORDER},
+    error::BinanceError,
+    types::FuturesAccountInfo, utils::build_query,
 };
 
 pub struct Binance {
@@ -28,7 +31,7 @@ impl Exchange for Binance {
 
     async fn place_market_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
     ) -> Result<(), ExchangeError> {
@@ -38,7 +41,7 @@ impl Exchange for Binance {
 
     async fn place_limit_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
         price: f64,
@@ -59,17 +62,26 @@ impl Binance {
 
     async fn try_place_market_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
     ) -> Result<(), BinanceError> {
-        let _ = (symbol, side, quantity);
-        todo!()
+        let query = build_query(&[
+            ("symbol", symbol.to_string()),
+            ("side", side.to_string()),
+            ("type", "MARKET".to_string()),
+            ("quantity", quantity.to_string()),
+            ("newOrderRespType", "RESULT".to_string()),
+        ]);
+
+        dbg!(&query);
+
+        self.client.transport().signed(Method::POST, ORDER, query).await
     }
 
     async fn try_place_limit_order(
         &self,
-        symbol: Symbol,
+        symbol: &Symbol,
         side: Side,
         quantity: f64,
         price: f64,
