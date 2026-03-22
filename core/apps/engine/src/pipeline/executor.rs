@@ -23,7 +23,9 @@ pub async fn run(
 
         // TODO: Await in hot path? hmmmm... think of spawning a thread for this.
         match execute_trade(&exchange, &approved_trade, &entry_model).await {
-            Ok(_) => {}
+            Ok(_) => {
+                info!(trade=%approved_trade,"Executed trade:")
+            }
             Err(err) => {
                 error!(error=%err,trade=%approved_trade,"Error executing trade:");
             }

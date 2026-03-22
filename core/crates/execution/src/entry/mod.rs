@@ -13,8 +13,8 @@ pub async fn execute_trade<E: Exchange>(
     match entry_model {
         EntryModel::Instant => instant::execute(exchange, approved_trade).await,
         EntryModel::Scheduled(_scheduled_entry) => {
-            // TODO
             instant::execute(exchange, approved_trade).await
+            // TODO
             // scheduled::execute(exchange, approved_trade, scheduled_entry).await
         }
     }

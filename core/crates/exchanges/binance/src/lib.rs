@@ -10,12 +10,14 @@ use async_trait::async_trait;
 use domain::{side::Side, symbol::Symbol};
 use execution::{error::ExchangeError, exchange::Exchange, types::AccountInfo};
 use reqwest::Method;
+use serde_json::Value;
 
 use crate::{
     client::BinanceClient,
     endpoints::{ACCOUNT_INFO, ORDER},
     error::BinanceError,
-    types::FuturesAccountInfo, utils::build_query,
+    types::FuturesAccountInfo,
+    utils::build_query,
 };
 
 pub struct Binance {
@@ -65,6 +67,7 @@ impl Binance {
         symbol: &Symbol,
         side: Side,
         quantity: f64,
+        //TODO: Result<MarketOrderResponse, BinanceError>
     ) -> Result<(), BinanceError> {
         let query = build_query(&[
             ("symbol", symbol.to_string()),
@@ -74,9 +77,13 @@ impl Binance {
             ("newOrderRespType", "RESULT".to_string()),
         ]);
 
-        dbg!(&query);
+        let _: Value = self
+            .client
+            .transport()
+            .signed(Method::POST, ORDER, query)
+            .await?;
 
-        self.client.transport().signed(Method::POST, ORDER, query).await
+        Ok(())
     }
 
     async fn try_place_limit_order(
