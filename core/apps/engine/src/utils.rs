@@ -10,20 +10,23 @@ pub fn get_build_version() -> &'static str {
 pub fn init_tracing() {
     use tracing_subscriber::EnvFilter;
 
-    tracing_subscriber::fmt()
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new(
-                "info,\
-                     grammers=warn,\
-                     grammers_session=warn,\
-                     grammers_client=warn,\
-                     hyper=warn,\
-                     reqwest=warn,\
-                     teloxide=warn",
-            )
+            EnvFilter::new(concat!(
+                "info,",
+                "grammers=warn,",
+                "grammers_client=warn,",
+                "grammers_session=warn,",
+                "grammers_mtproto=warn,",
+                "grammers_mtsender=warn,",
+                "grammers_tl_types=warn,",
+                "hyper=warn,",
+                "reqwest=warn,",
+                "teloxide=warn"
+            ))
         }))
         .without_time()
-        .init();
+        .try_init();
 }
 
 pub fn create_reqwest_client() -> reqwest::Client {
@@ -46,6 +49,7 @@ pub fn create_reqwest_client() -> reqwest::Client {
         // This cleans those up after 30 seconds if they are idle.
         .pool_max_idle_per_host(10) // Cleans dead sockets
         .tcp_keepalive(Duration::from_secs(60))
+        .tcp_nodelay(true)
         // Keep connections alive
         // Sends periodic “I’m alive” signal on TCP connection.
         .build()
