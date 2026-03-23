@@ -19,7 +19,7 @@ use serde_json::Value;
 
 use crate::{
     client::BinanceClient,
-    endpoints::{ACCOUNT_INFO, LEVERAGE, ORDER},
+    endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER},
     error::BinanceError,
     response_types::{BinanceSetLeverageResponse, FuturesAccountInfo},
     utils::build_query,
@@ -57,6 +57,17 @@ impl Exchange for Binance {
         quantity: f64,
     ) -> Result<(), ExchangeError> {
         self.try_place_market_order(symbol, side, quantity).await?;
+        Ok(())
+    }
+
+    async fn place_stop_loss_order(
+        &self,
+        symbol: &Symbol,
+        side: Side, // opposite of position side
+        stop_price: f64,
+    ) -> Result<(), ExchangeError> {
+        self.try_place_stop_loss_order(symbol, side, stop_price)
+            .await?;
         Ok(())
     }
 }
@@ -104,6 +115,31 @@ impl Binance {
             .client
             .transport()
             .signed(Method::POST, ORDER, query)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn try_place_stop_loss_order(
+        &self,
+        symbol: &Symbol,
+        side: Side,
+        stop_price: f64,
+    ) -> Result<(), BinanceError> {
+        let query = build_query(&[
+            ("symbol", symbol.to_string()),
+            ("side", side.to_string()),
+            ("algoType", "CONDITIONAL".to_string()),
+            ("type", "STOP_MARKET".to_string()),
+            ("closePosition", "true".to_string()),
+            ("triggerPrice", stop_price.to_string()),
+            ("workingType", "MARK_PRICE".to_string()),
+        ]);
+
+        let _: Value = self
+            .client
+            .transport()
+            .signed(Method::POST, ALGO_ORDER, query)
             .await?;
 
         Ok(())
