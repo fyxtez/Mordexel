@@ -9,8 +9,6 @@ pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeInt
     while let Some(event) = rx.recv().await {
         match event {
             IngressEvent::TelegramMessage(message) => {
-                info!(peer_id = message.peer_id, "received message");
-
                 match parse_trading_signal(&message.text) {
                     Some(signal) => {
                         info!(?signal, "parsed trading signal");

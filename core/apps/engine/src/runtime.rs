@@ -1,5 +1,6 @@
 use execution::{entry::entry_model::EntryModel, sizing::types::MarginSizingConfig};
 use tokio::sync::mpsc::Sender;
+use tokio::task::JoinHandle;
 
 use domain::ingress_events::IngressEvent;
 use tracing::error;
@@ -10,7 +11,21 @@ use crate::{
     utils::start_server,
 };
 
+struct RuntimeHandles {
+    telegram: JoinHandle<()>,
+    builder: JoinHandle<()>,
+    evaluator: JoinHandle<()>,
+    executor: JoinHandle<()>,
+    rejected_logger: JoinHandle<()>,
+    http: JoinHandle<()>,
+}
+
 pub async fn run_runtime(runtime: RuntimeDeps) {
+    let handles = spawn_runtime_tasks(runtime);
+    wait_for_runtime_tasks(handles).await;
+}
+
+fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     let RuntimeDeps {
         telegram_config,
         execution_policy,
@@ -20,18 +35,20 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
 
     let ingress_event_tx_clone = channels.ingress_event_tx.clone();
 
-    let telegram_handle = {
+    let sizing_config = create_sizing_config();
+
+    let telegram = {
         let tx: Sender<IngressEvent> = channels.ingress_event_tx;
         tokio::spawn(async move {
             adapter_telegram::run(telegram_config, tx).await;
         })
     };
 
-    let trade_intent_builder_handle = tokio::spawn(async move {
+    let builder = tokio::spawn(async move {
         builder::run(channels.ingress_event_rx, channels.trade_intent_tx).await;
     });
 
-    let trade_intent_evaluator_handle = tokio::spawn(async move {
+    let evaluator = tokio::spawn(async move {
         evaluator::run(
             channels.trade_intent_rx,
             channels.approved_trade_tx,
@@ -41,15 +58,7 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         .await;
     });
 
-    let sizing_config = match MarginSizingConfig::new(0.01, 0.90, 100) {
-        Ok(config) => config,
-        Err(err) => {
-            error!(error = %err, "failed to create margin sizing config");
-            return;
-        }
-    };
-
-    let approved_trade_executor_handle = tokio::spawn(async move {
+    let executor = tokio::spawn(async move {
         executor::run(
             channels.approved_trade_rx,
             binance,
@@ -59,15 +68,43 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         .await;
     });
 
-    let rejected_trade_logger_handle = tokio::spawn(async move {
+    let rejected_logger = tokio::spawn(async move {
         rejected_logger::run(channels.rejected_trade_rx).await;
     });
 
-    let http_handle = {
-        tokio::spawn(async move {
-            start_server(ingress_event_tx_clone).await;
-        })
-    };
+    let http = tokio::spawn(async move {
+        start_server(ingress_event_tx_clone).await;
+    });
+
+    RuntimeHandles {
+        telegram,
+        builder,
+        evaluator,
+        executor,
+        rejected_logger,
+        http,
+    }
+}
+
+fn create_sizing_config() -> MarginSizingConfig {
+    match MarginSizingConfig::new(0.01, 0.90, 100) {
+        Ok(config) => config,
+        Err(err) => {
+            error!(error = %err, "failed to create margin sizing config");
+            panic!("invalid margin sizing config");
+        }
+    }
+}
+
+async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
+    let RuntimeHandles {
+        telegram,
+        builder,
+        evaluator,
+        executor,
+        rejected_logger,
+        http,
+    } = handles;
 
     let (
         telegram_result,
@@ -77,30 +114,24 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         rejected_logger_result,
         http_result,
     ) = tokio::join!(
-        telegram_handle,
-        trade_intent_builder_handle,
-        trade_intent_evaluator_handle,
-        approved_trade_executor_handle,
-        rejected_trade_logger_handle,
-        http_handle,
+        telegram,
+        builder,
+        evaluator,
+        executor,
+        rejected_logger,
+        http,
     );
 
-    if let Err(err) = telegram_result {
-        tracing::error!(error = %err, "telegram task panicked");
-    }
-    if let Err(err) = builder_result {
-        tracing::error!(error = %err, "builder task panicked");
-    }
-    if let Err(err) = evaluator_result {
-        tracing::error!(error = %err, "evaluator task panicked");
-    }
-    if let Err(err) = executor_result {
-        tracing::error!(error = %err, "executor task panicked");
-    }
-    if let Err(err) = rejected_logger_result {
-        tracing::error!(error = %err, "rejected logger task panicked");
-    }
-    if let Err(err) = http_result {
-        tracing::error!(error = %err, "http task panicked");
+    log_task_panic("telegram", telegram_result);
+    log_task_panic("builder", builder_result);
+    log_task_panic("evaluator", evaluator_result);
+    log_task_panic("executor", executor_result);
+    log_task_panic("rejected logger", rejected_logger_result);
+    log_task_panic("http", http_result);
+}
+
+fn log_task_panic(task_name: &str, result: Result<(), tokio::task::JoinError>) {
+    if let Err(err) = result {
+        tracing::error!(task = task_name, error = %err, "task panicked");
     }
 }

@@ -37,14 +37,6 @@ pub async fn run(
                 reason: RejectionReason::ExecutionPolicyDenied,
             };
 
-            warn!(
-                intent_id = %rejected_trade.trade_intent.intent_id,
-                symbol = %rejected_trade.trade_intent.symbol,
-                timeframe = %rejected_trade.trade_intent.timeframe,
-                reason = ?rejected_trade.reason,
-                "trade intent rejected"
-            );
-
             if let Err(err) = rejected_trade_tx.send(rejected_trade).await {
                 error!(error = %err, "failed to send rejected trade");
                 break;
