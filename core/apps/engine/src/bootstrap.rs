@@ -71,11 +71,11 @@ pub fn bootstrap() -> RuntimeDeps {
         },
     };
 
-    debug!(
+    info!(
         mode = %if binance_config.is_test { "DEMO" } else { "LIVE" },
         "Started with binance mode"
     );
-    
+
     RuntimeDeps {
         telegram_config,
         execution_policy,
