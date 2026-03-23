@@ -1,7 +1,8 @@
-use execution::entry::entry_model::EntryModel;
+use execution::{entry::entry_model::EntryModel, sizing::types::MarginSizingConfig};
 use tokio::sync::mpsc::Sender;
 
 use domain::ingress_events::IngressEvent;
+use tracing::error;
 
 use crate::{
     bootstrap::RuntimeDeps,
@@ -40,8 +41,22 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
         .await;
     });
 
+    let sizing_config = match MarginSizingConfig::new(0.01, 0.90, 100) {
+        Ok(config) => config,
+        Err(err) => {
+            error!(error = %err, "failed to create margin sizing config");
+            return;
+        }
+    };
+
     let approved_trade_executor_handle = tokio::spawn(async move {
-        executor::run(channels.approved_trade_rx, binance, EntryModel::Instant).await;
+        executor::run(
+            channels.approved_trade_rx,
+            binance,
+            EntryModel::Instant,
+            sizing_config,
+        )
+        .await;
     });
 
     let rejected_trade_logger_handle = tokio::spawn(async move {

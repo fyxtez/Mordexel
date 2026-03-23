@@ -1,6 +1,7 @@
 pub mod builder;
 pub mod error;
 
+use std::fmt;
 use uuid::Uuid;
 
 use crate::{side::Side, symbol::Symbol, timeframe::Timeframe};
@@ -15,8 +16,6 @@ pub struct TradeIntent {
     pub timeframe: Timeframe,
     pub stop_loss: f64,
 }
-
-use std::fmt;
 
 impl fmt::Display for TradeIntent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

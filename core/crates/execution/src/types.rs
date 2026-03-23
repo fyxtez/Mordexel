@@ -1,3 +1,8 @@
+pub struct SetLeverageResponse {
+    pub leverage: u32,
+    pub symbol: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct AccountInfo {
     pub balance: f64,

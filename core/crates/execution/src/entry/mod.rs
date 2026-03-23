@@ -9,11 +9,12 @@ pub async fn execute_trade<E: Exchange>(
     exchange: &E,
     approved_trade: &ApprovedTrade,
     entry_model: &EntryModel,
+    quantity: f64,
 ) -> Result<(), ExecutionError> {
     match entry_model {
-        EntryModel::Instant => instant::execute(exchange, approved_trade).await,
+        EntryModel::Instant => instant::execute(exchange, approved_trade, quantity).await,
         EntryModel::Scheduled(_scheduled_entry) => {
-            instant::execute(exchange, approved_trade).await
+            instant::execute(exchange, approved_trade, quantity).await
             // TODO
             // scheduled::execute(exchange, approved_trade, scheduled_entry).await
         }

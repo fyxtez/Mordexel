@@ -28,4 +28,7 @@ pub enum ExecutionError {
 
     #[error("invalid scheduled entry: {message}")]
     InvalidScheduledEntry { message: String },
+
+    #[error("internal execution error: {message}")]
+    Internal { message: String },
 }
