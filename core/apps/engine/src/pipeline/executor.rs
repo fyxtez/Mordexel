@@ -13,22 +13,54 @@ pub async fn run(
     entry_model: EntryModel,
     sizing_config: MarginSizingConfig,
 ) {
-    info!("approved_trade_executor started");
+    info!(
+        ?entry_model,
+        ?sizing_config,
+        "approved_trade_executor started"
+    );
 
-    while let Some(approved_trade) = rx.recv().await {
+    loop {
+        info!("waiting for approved trade");
+
+        let Some(approved_trade) = rx.recv().await else {
+            warn!("approved_trade_executor stopped: all senders dropped");
+            break;
+        };
+
         let symbol = &approved_trade.trade_intent.symbol;
+        let intent_id = approved_trade.trade_intent.intent_id;
+        let timeframe = approved_trade.trade_intent.timeframe;
 
         info!(
-            intent_id = %approved_trade.trade_intent.intent_id,
+            intent_id = %intent_id,
             symbol = %symbol,
-            timeframe = %approved_trade.trade_intent.timeframe,
+            timeframe = %timeframe,
+            trade = %approved_trade,
             "received approved trade"
         );
 
+        info!(
+            intent_id = %intent_id,
+            symbol = %symbol,
+            "building execution plan"
+        );
+
         let plan = match build_execution_plan(&exchange, &approved_trade, &sizing_config).await {
-            Ok(plan) => plan,
+            Ok(plan) => {
+                info!(
+                    intent_id = %approved_trade.trade_intent.intent_id,
+                    symbol = %approved_trade.trade_intent.symbol,
+                    timeframe = %approved_trade.trade_intent.timeframe,
+                    planned_quantity = plan.quantity,
+                    leverage = plan.leverage,
+                    "built execution plan"
+                );
+                plan
+            }
             Err(err) => {
                 error!(
+                    intent_id = %intent_id,
+                    symbol = %symbol,
                     error = %err,
                     trade = %approved_trade,
                     "failed to build execution plan"
@@ -38,32 +70,69 @@ pub async fn run(
         };
 
         let leverage = plan.leverage;
+        let quantity = plan.quantity;
 
         info!(
-            trade = %approved_trade,
-            quantity = plan.quantity,
+            intent_id = %intent_id,
+            symbol = %symbol,
             leverage = leverage,
-            "built execution plan"
+            "setting leverage"
         );
 
         match exchange.set_leverage(symbol, leverage).await {
             Ok(_) => {
-                info!(symbol=%symbol,leverage=%leverage,"Leverage set:")
-            }
-            Err(error) => {
-                error!(error=%error,"Error setting leverage:")
-            }
-        }
-
-        match execute_trade(&exchange, &approved_trade, &entry_model, plan.quantity).await {
-            Ok(_) => {
-                info!(trade=%approved_trade,"Executed trade:")
+                info!(
+                    intent_id = %intent_id,
+                    symbol = %symbol,
+                    leverage = leverage,
+                    "leverage set successfully"
+                );
             }
             Err(err) => {
-                error!(error=%err,trade=%approved_trade,"Error executing trade:");
+                error!(
+                    intent_id = %intent_id,
+                    symbol = %symbol,
+                    leverage = leverage,
+                    error = %err,
+                    "failed to set leverage"
+                );
+                continue;
             }
         }
-    }
 
-    warn!("approved_trade_executor stopped: all senders dropped");
+        info!(
+            intent_id = %intent_id,
+            symbol = %symbol,
+            quantity = quantity,
+            "executing trade"
+        );
+
+        match execute_trade(&exchange, &approved_trade, &entry_model, quantity).await {
+            Ok(_) => {
+                info!(
+                    intent_id = %intent_id,
+                    symbol = %symbol,
+                    timeframe = %timeframe,
+                    planned_quantity = quantity,
+                    "trade executed successfully"
+                );
+            }
+            Err(err) => {
+                error!(
+                    intent_id = %intent_id,
+                    symbol = %symbol,
+                    quantity = quantity,
+                    error = %err,
+                    trade = %approved_trade,
+                    "failed to execute trade"
+                );
+            }
+        }
+
+        info!(
+            intent_id = %intent_id,
+            symbol = %symbol,
+            "finished processing approved trade"
+        );
+    }
 }

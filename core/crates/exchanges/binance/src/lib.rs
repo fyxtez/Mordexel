@@ -16,6 +16,7 @@ use execution::{
 };
 use reqwest::Method;
 use serde_json::Value;
+use tracing::{debug, info};
 
 use crate::{
     client::BinanceClient,
@@ -48,6 +49,17 @@ impl Exchange for Binance {
             symbol: response.symbol,
         })
     }
+    async fn place_take_profit_order(
+        &self,
+        symbol: &Symbol,
+        side: Side,
+        quantity: f64,
+        trigger_price: f64,
+    ) -> Result<(), ExchangeError> {
+        self.try_place_take_profit_order(symbol, side, quantity, trigger_price)
+            .await?;
+        Ok(())
+    }
 
     //TODO: Type
     async fn place_market_order(
@@ -78,22 +90,95 @@ impl Binance {
         symbol: &Symbol,
         leverage: u32,
     ) -> Result<BinanceSetLeverageResponse, BinanceError> {
+        debug!(
+            symbol = %symbol,
+            leverage = leverage,
+            "setting leverage on binance"
+        );
+
         let query = build_query(&[
             ("symbol", symbol.to_string()),
             ("leverage", leverage.to_string()),
         ]);
 
-        self.client
+        let response: BinanceSetLeverageResponse = self
+            .client
             .transport()
             .signed(Method::POST, LEVERAGE, query)
-            .await
+            .await?;
+
+        info!(
+            symbol = %symbol,
+            requested_leverage = leverage,
+            applied_leverage = response.leverage,
+            "binance leverage set successfully"
+        );
+
+        Ok(response)
     }
 
     async fn try_account_info(&self) -> Result<FuturesAccountInfo, BinanceError> {
-        self.client
+        debug!("fetching futures account info from binance");
+
+        let response: FuturesAccountInfo = self
+            .client
             .transport()
             .signed(Method::GET, ACCOUNT_INFO, String::new())
-            .await
+            .await?;
+
+        debug!(
+            total_wallet_balance = response.total_wallet_balance,
+            "fetched futures account info successfully"
+        );
+
+        Ok(response)
+    }
+
+    async fn try_place_take_profit_order(
+        &self,
+        symbol: &Symbol,
+        side: Side,
+        quantity: f64,
+        price: f64,
+    ) -> Result<(), BinanceError> {
+        debug!(
+            symbol = %symbol,
+            side = %side,
+            quantity = quantity,
+            price = price,
+            order_type = "LIMIT",
+            reduce_only = true,
+            "placing take profit order on binance"
+        );
+
+        let query = build_query(&[
+            ("symbol", symbol.to_string()),
+            ("side", side.to_string()),
+            ("type", "LIMIT".to_string()),
+            ("quantity", quantity.to_string()),
+            ("price", price.to_string()),
+            ("timeInForce", "GTC".to_string()),
+            ("reduceOnly", "true".to_string()),
+            ("newOrderRespType", "RESULT".to_string()),
+        ]);
+
+        let _: Value = self
+            .client
+            .transport()
+            .signed(Method::POST, ORDER, query)
+            .await?;
+
+        info!(
+            symbol = %symbol,
+            side = %side,
+            quantity = quantity,
+            price = price,
+            order_type = "LIMIT",
+            reduce_only = true,
+            "take profit order placed successfully"
+        );
+
+        Ok(())
     }
 
     async fn try_place_market_order(
@@ -101,8 +186,15 @@ impl Binance {
         symbol: &Symbol,
         side: Side,
         quantity: f64,
-        //TODO: Result<MarketOrderResponse, BinanceError>
     ) -> Result<(), BinanceError> {
+        debug!(
+            symbol = %symbol,
+            side = %side,
+            quantity = quantity,
+            order_type = "MARKET",
+            "placing market order on binance"
+        );
+
         let query = build_query(&[
             ("symbol", symbol.to_string()),
             ("side", side.to_string()),
@@ -117,6 +209,14 @@ impl Binance {
             .signed(Method::POST, ORDER, query)
             .await?;
 
+        info!(
+            symbol = %symbol,
+            side = %side,
+            quantity = quantity,
+            order_type = "MARKET",
+            "market order placed successfully"
+        );
+
         Ok(())
     }
 
@@ -126,6 +226,16 @@ impl Binance {
         side: Side,
         stop_price: f64,
     ) -> Result<(), BinanceError> {
+        debug!(
+            symbol = %symbol,
+            side = %side,
+            stop_price = stop_price,
+            order_type = "STOP_MARKET",
+            close_position = true,
+            working_type = "MARK_PRICE",
+            "placing stop loss order on binance"
+        );
+
         let query = build_query(&[
             ("symbol", symbol.to_string()),
             ("side", side.to_string()),
@@ -141,6 +251,16 @@ impl Binance {
             .transport()
             .signed(Method::POST, ALGO_ORDER, query)
             .await?;
+
+        info!(
+            symbol = %symbol,
+            side = %side,
+            stop_price = stop_price,
+            order_type = "STOP_MARKET",
+            close_position = true,
+            working_type = "MARK_PRICE",
+            "stop loss order placed successfully"
+        );
 
         Ok(())
     }

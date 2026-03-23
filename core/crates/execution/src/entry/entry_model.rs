@@ -1,10 +1,12 @@
 use std::time::Duration;
 
+#[derive(Debug)]
 pub enum EntryModel {
     Instant,
     Scheduled(ScheduledEntry),
 }
 
+#[derive(Debug)]
 pub struct ScheduledEntry {
     pub chunks: u32,
     pub total_duration: Duration,

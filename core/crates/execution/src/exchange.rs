@@ -26,9 +26,17 @@ pub trait Exchange: Send + Sync {
     ) -> Result<SetLeverageResponse, ExchangeError>;
 
     async fn place_stop_loss_order(
-    &self,
-    symbol: &Symbol,
-    side: Side,  // opposite of position side
-    stop_price: f64,
-) -> Result<(), ExchangeError>;
+        &self,
+        symbol: &Symbol,
+        side: Side, // opposite of position side
+        stop_price: f64,
+    ) -> Result<(), ExchangeError>;
+
+    async fn place_take_profit_order(
+        &self,
+        symbol: &Symbol,
+        side: Side,
+        quantity: f64,
+        trigger_price: f64,
+    ) -> Result<(), ExchangeError>;
 }

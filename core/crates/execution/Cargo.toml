@@ -7,4 +7,5 @@ edition = "2024"
 async-trait.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 domain = {path = "../domain"}

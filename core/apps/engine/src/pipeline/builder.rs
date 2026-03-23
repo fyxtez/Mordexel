@@ -6,42 +6,34 @@ use tracing::{error, info, warn};
 pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeIntent>) {
     info!("trade_intent_builder started");
 
-    while let Some(event) = rx.recv().await {
-        match event {
-            IngressEvent::TelegramMessage(message) => {
-                match parse_trading_signal(&message.text) {
-                    Some(signal) => {
-                        info!(?signal, "parsed trading signal");
+while let Some(event) = rx.recv().await {
+    let IngressEvent::TelegramMessage(message) = event;
 
-                        let intent_result = TradeIntent::builder(signal.symbol)
-                            .side(signal.side)
-                            .entry(signal.entry)
-                            .targets(&signal.targets)
-                            .timeframe(signal.timeframe)
-                            .stop_loss(signal.stop_loss)
-                            .build();
+    if let Some(signal) = parse_trading_signal(&message.text) {
+        info!(?signal, "parsed trading signal");
 
-                        match intent_result {
-                            Ok(intent) => {
-                                info!(intent_id = %intent.intent_id, "built trade intent");
+        match TradeIntent::builder(signal.symbol)
+            .side(signal.side)
+            .entry(signal.entry)
+            .targets(&signal.targets)
+            .timeframe(signal.timeframe)
+            .stop_loss(signal.stop_loss)
+            .build()
+        {
+            Ok(intent) => {
+                info!(intent_id = %intent.intent_id, "built trade intent");
 
-                                if let Err(err) = tx.send(intent).await {
-                                    error!(error = %err, "failed to send trade intent");
-                                    break;
-                                }
-                            }
-                            Err(err) => {
-                                warn!(error = %err, "failed to build trade intent");
-                            }
-                        }
-                    }
-                    None => {
-                        warn!(peer_id = message.peer_id, "failed to parse trading signal");
-                    }
+                if let Err(err) = tx.send(intent).await {
+                    error!(error = %err, "failed to send trade intent");
+                    break;
                 }
+            }
+            Err(err) => {
+                warn!(error = %err, "failed to build trade intent");
             }
         }
     }
+}
 
     warn!("trade_intent_builder stopped: all senders dropped");
 }

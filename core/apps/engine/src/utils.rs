@@ -12,7 +12,15 @@ pub fn init_tracing() {
 
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-            EnvFilter::new("engine=info,adapter_telegram=info,adapter_http=info")
+            EnvFilter::new(
+                "info,\
+                     grammers=warn,\
+                     grammers_session=warn,\
+                     grammers_client=warn,\
+                     hyper=warn,\
+                     reqwest=warn,\
+                     teloxide=warn",
+            )
         }))
         .without_time()
         .init();

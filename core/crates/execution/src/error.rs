@@ -1,3 +1,4 @@
+use domain::symbol::Symbol;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -25,6 +26,9 @@ pub enum ExchangeError {
 pub enum ExecutionError {
     #[error("exchange error: {0}")]
     Exchange(#[from] ExchangeError),
+
+    #[error("unsupported symbol: {0}")]
+    UnsupportedSymbol(Symbol),
 
     #[error("invalid scheduled entry: {message}")]
     InvalidScheduledEntry { message: String },
