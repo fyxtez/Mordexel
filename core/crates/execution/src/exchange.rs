@@ -3,7 +3,7 @@ use domain::{side::Side, symbol::Symbol};
 
 use crate::{
     error::ExchangeError,
-    types::{AccountInfo, SetLeverageResponse},
+    types::{AccountInfo, SetLeverageResponse, SymbolFilters},
 };
 
 // TODO: Result<()
@@ -39,4 +39,7 @@ pub trait Exchange: Send + Sync {
         quantity: f64,
         trigger_price: f64,
     ) -> Result<(), ExchangeError>;
+
+    fn symbol_filters(&self, symbol: &Symbol) -> Result<&SymbolFilters, ExchangeError>;
+
 }

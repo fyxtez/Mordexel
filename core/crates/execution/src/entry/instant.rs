@@ -1,7 +1,6 @@
 use domain::{approved_trade::ApprovedTrade, side::Side};
 
 use crate::{
-    constants::symbol_filters,
     error::ExecutionError,
     exchange::Exchange,
     utils::{round_down_to_step, round_up_to_step},
@@ -29,28 +28,16 @@ pub async fn execute<E: Exchange>(
         "starting instant execution"
     );
 
-    let filters = match symbol_filters().get(symbol) {
-        Some(filters) => {
-            info!(
-                intent_id = %intent.intent_id,
-                symbol = %symbol,
-                step_size = filters.step_size,
-                tick_size = filters.tick_size,
-                min_qty = filters.min_qty,
-                min_notional = filters.min_notional,
-                "loaded symbol filters"
-            );
-            filters
-        }
-        None => {
-            error!(
-                intent_id = %intent.intent_id,
-                symbol = %symbol,
-                "unsupported symbol: missing filters"
-            );
-            return Err(ExecutionError::UnsupportedSymbol(symbol.clone()));
-        }
-    };
+    let filters = exchange.symbol_filters(symbol)?;
+
+    info!(
+        intent_id = %intent.intent_id,
+        symbol = %symbol,
+        min_qty = filters.min_qty,
+        step_size = filters.step_size,
+        min_notional = filters.min_notional,
+        "loaded symbol filters"
+    );
 
     let quantity = round_down_to_step(quantity, filters.step_size);
 

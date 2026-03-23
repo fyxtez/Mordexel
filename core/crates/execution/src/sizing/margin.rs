@@ -2,7 +2,6 @@ use domain::approved_trade::ApprovedTrade;
 use tracing::{error, info};
 
 use crate::{
-    constants::symbol_filters,
     error::ExecutionError,
     exchange::Exchange,
     sizing::types::{ExecutionPlan, MarginSizingConfig},
@@ -65,29 +64,16 @@ pub async fn build_execution_plan<E: Exchange>(
         "loading symbol filters"
     );
 
-    let filters = match symbol_filters().get(symbol) {
-        Some(filters) => {
-            info!(
-                intent_id = %intent_id,
-                symbol = %symbol,
-                min_qty = filters.min_qty,
-                step_size = filters.step_size,
-                min_notional = filters.min_notional,
-                "loaded symbol filters"
-            );
-            filters
-        }
-        None => {
-            error!(
-                intent_id = %intent_id,
-                symbol = %symbol,
-                "missing symbol filters"
-            );
-            return Err(ExecutionError::Internal {
-                message: format!("missing symbol filters for {}", symbol),
-            });
-        }
-    };
+    let filters = exchange.symbol_filters(symbol)?;
+
+    info!(
+        intent_id = %intent_id,
+        symbol = %symbol,
+        min_qty = filters.min_qty,
+        step_size = filters.step_size,
+        min_notional = filters.min_notional,
+        "loaded symbol filters"
+    );
 
     if entry <= 0.0 {
         error!(

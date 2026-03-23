@@ -5,7 +5,7 @@ use reqwest::Method;
 use sha2::Sha256;
 
 use crate::{
-    constants::{FUTURES, TESTNET_FUTURES},
+    futures_endpoints::{FUTURES, TESTNET_FUTURES},
     error::{BinanceApiError, BinanceError},
     types::BinanceConfig,
 };

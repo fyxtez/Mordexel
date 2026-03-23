@@ -1,4 +1,3 @@
-pub mod constants;
 pub mod entry;
 pub mod error;
 pub mod exchange;

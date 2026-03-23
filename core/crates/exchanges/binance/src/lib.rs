@@ -2,6 +2,7 @@ pub mod client;
 mod constants;
 mod endpoints;
 mod error;
+mod futures_endpoints;
 mod response_types;
 mod transport;
 pub mod types;
@@ -12,18 +13,14 @@ use domain::{side::Side, symbol::Symbol};
 use execution::{
     error::ExchangeError,
     exchange::Exchange,
-    types::{AccountInfo, SetLeverageResponse as ExchangeSetLeverageResponse},
+    types::{AccountInfo, SetLeverageResponse as ExchangeSetLeverageResponse, SymbolFilters},
 };
 use reqwest::Method;
 use serde_json::Value;
 use tracing::{debug, info};
 
 use crate::{
-    client::BinanceClient,
-    endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER},
-    error::BinanceError,
-    response_types::{BinanceSetLeverageResponse, FuturesAccountInfo},
-    utils::build_query,
+    client::BinanceClient, constants::binance_symbol_filters, endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER}, error::BinanceError, response_types::{BinanceSetLeverageResponse, FuturesAccountInfo}, utils::build_query
 };
 
 pub struct Binance {
@@ -35,6 +32,14 @@ impl Exchange for Binance {
     async fn account_info(&self) -> Result<AccountInfo, ExchangeError> {
         let raw = self.try_account_info().await?;
         Ok(raw.into())
+    }
+
+    fn symbol_filters(&self, symbol: &Symbol) -> Result<&SymbolFilters, ExchangeError> {
+        binance_symbol_filters()
+            .get(symbol)
+            .ok_or_else(|| ExchangeError::InvalidRequest {
+                message: format!("no symbol filters configured for {}", symbol),
+            })
     }
 
     async fn set_leverage(
