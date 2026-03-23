@@ -1,15 +1,37 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 URL="http://localhost:8656/trade"
 
 send_trade() {
   local msg="$1"
 
-  curl -s -X POST "$URL" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg text "$msg" '{text: $text}')"
+  echo "--------------------"
 
-  echo -e "\n---"
+  local response
+  local body
+  local status
+
+  response=$(
+    curl -sS -X POST "$URL" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg text "$msg" '{text: $text}')" \
+      -w $'\n%{http_code}'
+  )
+
+  body="$(echo "$response" | sed '$d')"
+  status="$(echo "$response" | tail -n1)"
+
+  echo "HTTP Status: $status"
+  echo "Response Body:"
+
+  if command -v jq >/dev/null 2>&1; then
+    echo "$body" | jq . 2>/dev/null || echo "$body"
+  else
+    echo "$body"
+  fi
+
 }
 
 # ===================== MESSAGES =====================

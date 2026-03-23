@@ -20,7 +20,12 @@ use serde_json::Value;
 use tracing::{debug, info};
 
 use crate::{
-    client::BinanceClient, constants::binance_symbol_filters, endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER}, error::BinanceError, response_types::{BinanceSetLeverageResponse, FuturesAccountInfo}, utils::build_query
+    client::BinanceClient,
+    constants::binance_symbol_filters,
+    endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER},
+    error::BinanceError,
+    response_types::{BinanceSetLeverageResponse, FuturesAccountInfo},
+    utils::build_query,
 };
 
 pub struct Binance {

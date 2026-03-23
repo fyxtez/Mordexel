@@ -20,10 +20,11 @@ pub async fn start_api_server(
     address: &str,
     port: u16,
     tx: mpsc::Sender<IngressEvent>,
+    is_test: bool,
 ) -> Result<(), io::Error> {
     let listener = TcpListener::bind(format!("{}:{}", address, port)).await?;
 
-    let state = AppState { tx };
+    let state = AppState { tx, is_test };
 
     let router = Router::new()
         .route("/ping", get(ping))
@@ -47,6 +48,10 @@ async fn trade(
     State(state): State<AppState>,
     Json(payload): Json<TradeRequest>,
 ) -> impl IntoResponse {
+    if !state.is_test {
+        return (StatusCode::BAD_REQUEST, "Not using testnet(Demo)");
+    }
+
     match state
         .tx
         .send(IngressEvent::TelegramMessage(

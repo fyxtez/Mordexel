@@ -52,7 +52,7 @@ pub fn create_reqwest_client() -> reqwest::Client {
         .unwrap() //Allow unwrap cause request client must exist on startup. 
 }
 
-pub async fn start_server(tx: Sender<IngressEvent>) {
+pub async fn start_server(tx: Sender<IngressEvent>, is_test: bool) {
     let address = if cfg!(feature = "production") {
         "0.0.0.0"
     } else {
@@ -61,7 +61,7 @@ pub async fn start_server(tx: Sender<IngressEvent>) {
 
     let port = 8656;
 
-    match start_api_server(address, port, tx).await {
+    match start_api_server(address, port, tx, is_test).await {
         Ok(_) => {}
         Err(error) => {
             error!(error = %error, "Failed starting api server.");

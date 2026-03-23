@@ -6,6 +6,7 @@ pub struct BinanceClient {
     pub base_url: String,
     pub api_key: String,
     pub api_secret: String,
+    pub is_test: bool,
 }
 
 impl BinanceClient {
@@ -15,6 +16,7 @@ impl BinanceClient {
             base_url: config.base_url.to_string(),
             api_key: config.api_key.to_string(),
             api_secret: config.api_secret.to_string(),
+            is_test: config.is_test,
         }
     }
 

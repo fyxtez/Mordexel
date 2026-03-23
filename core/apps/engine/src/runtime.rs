@@ -33,6 +33,8 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
         channels,
     } = runtime;
 
+    let is_test = binance.client.is_test;
+
     let ingress_event_tx_clone = channels.ingress_event_tx.clone();
 
     let sizing_config = create_sizing_config();
@@ -73,7 +75,7 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     });
 
     let http = tokio::spawn(async move {
-        start_server(ingress_event_tx_clone).await;
+        start_server(ingress_event_tx_clone, is_test).await;
     });
 
     RuntimeHandles {

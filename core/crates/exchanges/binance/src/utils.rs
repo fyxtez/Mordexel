@@ -5,8 +5,8 @@ use reqwest::Method;
 use sha2::Sha256;
 
 use crate::{
-    futures_endpoints::{FUTURES, TESTNET_FUTURES},
     error::{BinanceApiError, BinanceError},
+    futures_endpoints::{FUTURES, TESTNET_FUTURES},
     types::BinanceConfig,
 };
 
@@ -116,6 +116,7 @@ pub fn load_binance_config(is_test: bool) -> BinanceConfig {
         api_key,
         api_secret,
         base_url: base_url.to_string(),
+        is_test,
     }
 }
 

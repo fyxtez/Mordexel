@@ -41,5 +41,4 @@ pub trait Exchange: Send + Sync {
     ) -> Result<(), ExchangeError>;
 
     fn symbol_filters(&self, symbol: &Symbol) -> Result<&SymbolFilters, ExchangeError>;
-
 }

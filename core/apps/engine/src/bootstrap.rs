@@ -60,13 +60,14 @@ pub fn bootstrap() -> RuntimeDeps {
 
     let execution_policy = ExecutionPolicy::strict_profit_only();
 
-    let binance_config = load_binance_config(true);
+    let binance_config = load_binance_config(false);
     let binance = Binance {
         client: BinanceClient {
             request_client: create_reqwest_client(),
             base_url: binance_config.base_url,
             api_key: binance_config.api_key,
             api_secret: binance_config.api_secret,
+            is_test: binance_config.is_test,
         },
     };
 
