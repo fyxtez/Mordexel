@@ -33,7 +33,7 @@ pub fn create_reqwest_client() -> reqwest::Client {
     use std::time::Duration;
 
     reqwest::Client::builder()
-        .user_agent("Pulsgram/1.0")
+        .user_agent("mordexel/1.0")
         .connect_timeout(Duration::from_secs(5))
         // Network safety
         // How long is the waiting to establish TCP connection to Binance.
