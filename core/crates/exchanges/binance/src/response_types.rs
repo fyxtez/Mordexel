@@ -72,13 +72,14 @@ impl From<FuturesAccountInfo> for AccountInfo {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeverageBracketResponse {
     pub symbol: String,
     pub brackets: Vec<LeverageBracket>,
 }
-
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LeverageBracket {
