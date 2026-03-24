@@ -89,7 +89,7 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
 }
 
 fn create_sizing_config() -> MarginSizingConfig {
-    match MarginSizingConfig::new(0.01, 0.90, 100) {
+    match MarginSizingConfig::new(0.02, 0.95, 120) {
         Ok(config) => config,
         Err(err) => {
             error!(error = %err, "failed to create margin sizing config");
