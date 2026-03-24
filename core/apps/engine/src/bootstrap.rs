@@ -71,6 +71,8 @@ pub fn bootstrap() -> RuntimeDeps {
         },
     };
 
+    dbg!(&binance.client);
+
     info!(
         mode = %if binance_config.is_test { "DEMO" } else { "LIVE" },
         "Started with binance mode"

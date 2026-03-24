@@ -22,15 +22,17 @@ use tracing::{debug, info};
 use crate::{
     client::BinanceClient,
     constants::binance_symbol_filters,
-    endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, ORDER},
+    endpoints::{ACCOUNT_INFO, ALGO_ORDER, LEVERAGE, LEVERAGE_BRACKET, ORDER},
     error::BinanceError,
-    response_types::{BinanceSetLeverageResponse, FuturesAccountInfo},
+    response_types::{BinanceSetLeverageResponse, FuturesAccountInfo, LeverageBracketResponse},
     utils::build_query,
 };
 
 pub struct Binance {
     pub client: BinanceClient,
 }
+
+// TODO: Split everything in mutiple impls in different files
 
 #[async_trait]
 impl Exchange for Binance {
@@ -59,6 +61,11 @@ impl Exchange for Binance {
             symbol: response.symbol,
         })
     }
+
+    async fn max_leverage_for_symbol(&self, symbol: &Symbol) -> Result<u32, ExchangeError> {
+        Ok(self.try_max_leverage_for_symbol(symbol).await?)
+    }
+
     async fn place_take_profit_order(
         &self,
         symbol: &Symbol,
@@ -125,6 +132,42 @@ impl Binance {
         );
 
         Ok(response)
+    }
+
+    async fn try_max_leverage_for_symbol(&self, symbol: &Symbol) -> Result<u32, BinanceError> {
+        debug!(symbol = %symbol, "fetching leverage brackets from binance");
+
+        let query = build_query(&[("symbol", symbol.to_string())]);
+
+        let response: Vec<LeverageBracketResponse> = self
+            .client
+            .transport()
+            .signed(Method::GET, LEVERAGE_BRACKET, query)
+            .await?;
+
+        let brackets = response.first().ok_or_else(|| {
+            BinanceError::MissingField(format!(
+                "empty leverage bracket response for symbol {}",
+                symbol
+            ))
+        })?;
+
+        let max_leverage = brackets
+            .brackets
+            .iter()
+            .map(|b| b.initial_leverage)
+            .max()
+            .ok_or_else(|| {
+                BinanceError::MissingField(format!("no brackets found for symbol {}", symbol))
+            })?;
+
+        info!(
+            symbol = %symbol,
+            max_leverage = max_leverage,
+            "fetched max leverage for symbol successfully"
+        );
+
+        Ok(max_leverage)
     }
 
     async fn try_account_info(&self) -> Result<FuturesAccountInfo, BinanceError> {

@@ -71,3 +71,21 @@ impl From<FuturesAccountInfo> for AccountInfo {
         }
     }
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeverageBracketResponse {
+    pub symbol: String,
+    pub brackets: Vec<LeverageBracket>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LeverageBracket {
+    pub bracket: u32,
+    pub initial_leverage: u32,
+    pub notional_cap: f64,
+    pub notional_floor: f64,
+    pub maint_margin_ratio: f64,
+    pub cum: f64,
+}

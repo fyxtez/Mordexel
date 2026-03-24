@@ -25,9 +25,38 @@ pub async fn build_execution_plan<E: Exchange>(
         stop_loss = stop_loss,
         margin_pct = config.margin_pct,
         leverage_safety = config.leverage_safety,
-        max_leverage = config.max_leverage,
+        config_max_leverage = config.max_leverage,
         "building execution plan"
     );
+
+    info!(
+        intent_id = %intent_id,
+        symbol = %symbol,
+        "fetching max leverage for symbol"
+    );
+
+    // TODO: this does not really need to be here,
+    // it can be prepopulated and extracted every 12 hours or so.
+    let exchange_max_leverage = match exchange.max_leverage_for_symbol(symbol).await {
+        Ok(max_leverage) => {
+            info!(
+                intent_id = %intent_id,
+                symbol = %symbol,
+                exchange_max_leverage = max_leverage,
+                "fetched max leverage for symbol"
+            );
+            max_leverage
+        }
+        Err(err) => {
+            error!(
+                intent_id = %intent_id,
+                symbol = %symbol,
+                error = %err,
+                "failed to fetch max leverage for symbol"
+            );
+            return Err(err.into());
+        }
+    };
 
     info!(
         intent_id = %intent_id,
@@ -182,10 +211,21 @@ pub async fn build_execution_plan<E: Exchange>(
         "computed theoretical max leverage"
     );
 
+    let effective_max_leverage = config.max_leverage.min(exchange_max_leverage);
+
+    info!(
+        intent_id = %intent_id,
+        symbol = %symbol,
+        config_max_leverage = config.max_leverage,
+        exchange_max_leverage = exchange_max_leverage,
+        effective_max_leverage = effective_max_leverage,
+        "computed effective max leverage cap"
+    );
+
     let leverage = (theoretical_max_leverage * config.leverage_safety)
         .floor()
         .max(1.0)
-        .min(config.max_leverage as f64) as u32;
+        .min(effective_max_leverage as f64) as u32;
 
     let position_notional = allocated_margin * leverage as f64;
     let raw_quantity = position_notional / entry;
@@ -251,6 +291,47 @@ pub async fn build_execution_plan<E: Exchange>(
 
     let final_notional = quantity * entry;
 
+    let required_margin = final_notional / leverage as f64;
+
+    // buffer for fees
+    // TODO: Put this in config
+    // TODO: Or extract data from binance to get the fee rates.
+    let margin_buffer = 0.9999;
+
+    let max_allowed_margin = allocated_margin * margin_buffer;
+
+    info!(
+        intent_id = %intent_id,
+        symbol = %symbol,
+        allocated_margin = allocated_margin,
+        required_margin = required_margin,
+        max_allowed_margin = max_allowed_margin,
+        margin_buffer = margin_buffer,
+        final_notional = final_notional,
+        leverage = leverage,
+        "computed required margin with safety buffer"
+    );
+
+    if required_margin > max_allowed_margin {
+        error!(
+            intent_id = %intent_id,
+            symbol = %symbol,
+            allocated_margin = allocated_margin,
+            required_margin = required_margin,
+            max_allowed_margin = max_allowed_margin,
+            quantity = quantity,
+            leverage = leverage,
+            final_notional = final_notional,
+            "final quantity exceeds buffered margin after exchange minimum adjustments"
+        );
+        return Err(ExecutionError::Internal {
+            message: format!(
+                "final quantity requires margin {} but only {} was allocated for {}",
+                required_margin, allocated_margin, symbol
+            ),
+        });
+    }
+
     info!(
         intent_id = %intent_id,
         symbol = %symbol,
@@ -272,7 +353,7 @@ pub async fn build_execution_plan<E: Exchange>(
         });
     }
 
-    if quantity < filters.min_qty {
+    if quantity < min_qty {
         error!(
             intent_id = %intent_id,
             symbol = %symbol,

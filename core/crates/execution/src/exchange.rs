@@ -41,4 +41,6 @@ pub trait Exchange: Send + Sync {
     ) -> Result<(), ExchangeError>;
 
     fn symbol_filters(&self, symbol: &Symbol) -> Result<&SymbolFilters, ExchangeError>;
+
+    async fn max_leverage_for_symbol(&self, symbol: &Symbol) -> Result<u32, ExchangeError>;
 }

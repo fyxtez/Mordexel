@@ -9,7 +9,7 @@ pub enum BinanceError {
     Json(#[from] serde_json::Error),
 
     #[error("Missing field in response: {0}")]
-    MissingField(&'static str),
+    MissingField(String),
 
     #[error("Binance API error {0}")]
     Api(BinanceApiError),
