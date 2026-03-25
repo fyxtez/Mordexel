@@ -58,7 +58,7 @@ pub fn bootstrap() -> RuntimeDeps {
 
     let telegram_config = load_telegram_config();
 
-    let execution_policy = ExecutionPolicy::strict_profit_only();
+    let execution_policy = ExecutionPolicy::continuation_v1();
 
     let is_test = build_version == "DEV";
 

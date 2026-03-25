@@ -11,7 +11,7 @@ pub struct ExecutionPolicy {
 }
 
 impl ExecutionPolicy {
-    pub fn strict_profit_only() -> Self {
+    pub fn continuation_v1() -> Self {
         use Asset::*;
         let mut allowed = HashMap::new();
 

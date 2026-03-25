@@ -178,21 +178,47 @@ pub async fn execute<E: Exchange>(
         }
     }
 
-    let tp_count = intent.targets.len().min(max_tp_orders);
-    let targets = &intent.targets[..tp_count];
-    let tp_base = round_down_to_step(quantity / tp_count as f64, filters.step_size);
+    let effective_targets: Vec<f64> = match intent.targets.as_slice() {
+        // If we have 3+ targets, skip TP1 and keep TP2 + TP3
+        [_, tp2, tp3, ..] => vec![*tp2, *tp3],
 
-    info!(
-        intent_id = %intent.intent_id,
-        symbol = %symbol,
-        requested_targets = intent.targets.len(),
-        tp_count = tp_count,
-        tp_base_quantity = tp_base,
-        "computed take-profit distribution"
-    );
+        // If we only have 2 targets, keep both
+        [tp1, tp2] => vec![*tp1, *tp2],
+
+        // If we only have 1 target, keep it
+        [tp1] => vec![*tp1],
+
+        // Should already be guarded above, but keep safe
+        [] => {
+            return Err(ExecutionError::Internal {
+                message: format!("no take profit targets for {}", symbol),
+            });
+        }
+    };
+
+    let tp_count = effective_targets.len().min(max_tp_orders);
+
+    if tp_count == 0 {
+        return Err(ExecutionError::Internal {
+            message: format!("no usable take profit targets for {}", symbol),
+        });
+    }
+
+    let targets = &effective_targets[..tp_count];
+    let tp_base = round_down_to_step(quantity / tp_count as f64, filters.step_size);
+   
+info!(
+    intent_id = %intent.intent_id,
+    symbol = %symbol,
+    requested_targets = intent.targets.len(),
+    effective_targets = ?targets,
+    tp_count = tp_count,
+    tp_base_quantity = tp_base,
+    "computed take-profit distribution"
+);
 
     for (i, target) in targets.iter().enumerate() {
-        let tp_index = i + 1;
+        let effective_tp_index = i + 1;
 
         let tp_qty = if i == tp_count - 1 {
             round_down_to_step(
@@ -207,7 +233,7 @@ pub async fn execute<E: Exchange>(
             warn!(
                 intent_id = %intent.intent_id,
                 symbol = %symbol,
-                tp_index = tp_index,
+                tp_index = effective_tp_index,
                 target = *target,
                 tp_qty = tp_qty,
                 "skipping take-profit order because quantity is zero after rounding"
@@ -223,7 +249,7 @@ pub async fn execute<E: Exchange>(
         info!(
             intent_id = %intent.intent_id,
             symbol = %symbol,
-            tp_index = tp_index,
+            tp_index = effective_tp_index,
             close_side = %close_side,
             target_input = *target,
             tp_price = tp_price,
@@ -239,7 +265,7 @@ pub async fn execute<E: Exchange>(
                 info!(
                     intent_id = %intent.intent_id,
                     symbol = %symbol,
-                    tp_index = tp_index,
+                    tp_index = effective_tp_index,
                     tp_price = tp_price,
                     tp_qty = tp_qty,
                     "take-profit order placed successfully"
@@ -249,7 +275,7 @@ pub async fn execute<E: Exchange>(
                 error!(
                     intent_id = %intent.intent_id,
                     symbol = %symbol,
-                    tp_index = tp_index,
+                    tp_index = effective_tp_index,
                     tp_price = tp_price,
                     tp_qty = tp_qty,
                     error = %err,
