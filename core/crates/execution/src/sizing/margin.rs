@@ -296,7 +296,7 @@ pub async fn build_execution_plan<E: Exchange>(
     // buffer for fees
     // TODO: Put this in config
     // TODO: Or extract data from binance to get the fee rates.
-    let margin_buffer = 0.9999;
+    let margin_buffer = 1.0;
 
     let max_allowed_margin = allocated_margin * margin_buffer;
 

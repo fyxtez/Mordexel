@@ -60,7 +60,13 @@ pub fn bootstrap() -> RuntimeDeps {
 
     let execution_policy = ExecutionPolicy::strict_profit_only();
 
-    let binance_config = load_binance_config(false);
+    let is_test = build_version == "DEV";
+
+    if build_version == "DEV" && !is_test {
+        panic!("🚨 DEV build cannot run in LIVE mode. This is blocked for safety.");
+    }
+
+    let binance_config = load_binance_config(is_test);
     let binance = Binance {
         client: BinanceClient {
             request_client: create_reqwest_client(),
@@ -70,8 +76,6 @@ pub fn bootstrap() -> RuntimeDeps {
             is_test: binance_config.is_test,
         },
     };
-
-    dbg!(&binance.client);
 
     info!(
         mode = %if binance_config.is_test { "DEMO" } else { "LIVE" },
