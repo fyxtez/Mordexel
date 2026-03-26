@@ -1,4 +1,4 @@
-use domain::{approved_trade::ApprovedTrade, side::Side};
+use domain::{approved_trade::ApprovedTrade, side::Side, timeframe::Timeframe};
 
 use crate::{
     error::ExecutionError,
@@ -178,23 +178,38 @@ pub async fn execute<E: Exchange>(
         }
     }
 
-    let effective_targets: Vec<f64> = match intent.targets.as_slice() {
-        // If we have 3+ targets, skip TP1 and keep TP2 + TP3
-        [_, tp2, tp3, ..] => vec![*tp2, *tp3],
-
-        // If we only have 2 targets, keep both
-        [tp1, tp2] => vec![*tp1, *tp2],
-
-        // If we only have 1 target, keep it
-        [tp1] => vec![*tp1],
-
-        // Should already be guarded above, but keep safe
-        [] => {
-            return Err(ExecutionError::Internal {
-                message: format!("no take profit targets for {}", symbol),
-            });
+    let timeframe = intent.timeframe;
+    let effective_targets: Vec<f64> = if timeframe == Timeframe::H1 {
+        // 1h → ONLY TP1
+        match intent.targets.as_slice() {
+            [tp1, ..] => vec![*tp1],
+            [] => {
+                return Err(ExecutionError::Internal {
+                    message: format!("no take profit targets for {}", symbol),
+                });
+            }
+        }
+    } else {
+        // 30m → continuation logic
+        match intent.targets.as_slice() {
+            [_, tp2, tp3, ..] => vec![*tp2, *tp3],
+            [tp1, tp2] => vec![*tp1, *tp2],
+            [tp1] => vec![*tp1],
+            [] => {
+                return Err(ExecutionError::Internal {
+                    message: format!("no take profit targets for {}", symbol),
+                });
+            }
         }
     };
+
+    info!(
+        intent_id = %intent.intent_id,
+        symbol = %symbol,
+        timeframe = %timeframe,
+        mode = if timeframe == Timeframe::H1 { "TP1_ONLY" } else { "FULL" },
+        "execution mode selected"
+    );
 
     let tp_count = effective_targets.len().min(max_tp_orders);
 
@@ -206,16 +221,16 @@ pub async fn execute<E: Exchange>(
 
     let targets = &effective_targets[..tp_count];
     let tp_base = round_down_to_step(quantity / tp_count as f64, filters.step_size);
-   
-info!(
-    intent_id = %intent.intent_id,
-    symbol = %symbol,
-    requested_targets = intent.targets.len(),
-    effective_targets = ?targets,
-    tp_count = tp_count,
-    tp_base_quantity = tp_base,
-    "computed take-profit distribution"
-);
+
+    info!(
+        intent_id = %intent.intent_id,
+        symbol = %symbol,
+        requested_targets = intent.targets.len(),
+        effective_targets = ?targets,
+        tp_count = tp_count,
+        tp_base_quantity = tp_base,
+        "computed take-profit distribution"
+    );
 
     for (i, target) in targets.iter().enumerate() {
         let effective_tp_index = i + 1;
