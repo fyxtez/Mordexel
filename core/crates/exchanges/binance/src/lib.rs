@@ -7,6 +7,7 @@ mod response_types;
 mod transport;
 pub mod types;
 pub mod utils;
+pub mod ws;
 
 use async_trait::async_trait;
 use domain::{side::Side, symbol::Symbol};

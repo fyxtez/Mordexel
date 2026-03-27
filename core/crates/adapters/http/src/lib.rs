@@ -48,10 +48,22 @@ async fn trade(
     State(state): State<AppState>,
     Json(payload): Json<TradeRequest>,
 ) -> impl IntoResponse {
-    if !state.is_test {
-        return (StatusCode::BAD_REQUEST, "Not using testnet(Demo)");
+    let build_version = option_env!("BUILD_VERSION").unwrap_or("dev");
+    let is_dev_build = build_version.trim().eq_ignore_ascii_case("dev");
+
+    if !is_dev_build {
+        return (
+            StatusCode::FORBIDDEN,
+            "Trade endpoint is only enabled in DEV builds",
+        );
     }
 
+    if !state.is_test {
+        return (
+            StatusCode::BAD_REQUEST,
+            "DEV build must use Binance testnet (Demo) for /trade",
+        );
+    }
     match state
         .tx
         .send(IngressEvent::TelegramMessage(

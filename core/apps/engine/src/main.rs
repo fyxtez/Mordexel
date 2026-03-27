@@ -2,6 +2,7 @@ mod bootstrap;
 mod execution_policy;
 mod pipeline;
 mod runtime;
+mod types;
 mod utils;
 
 #[tokio::main]

@@ -4,3 +4,10 @@ pub struct BinanceConfig {
     pub base_url: String,
     pub is_test: bool,
 }
+
+#[derive(Debug, Clone)]
+pub enum BinanceNetwork {
+    Testnet,
+    Mainnet,
+    Unknown,
+}

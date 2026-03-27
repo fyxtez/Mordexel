@@ -1,39 +1,18 @@
 use adapter_telegram::utils::load_telegram_config;
-use binance::{Binance, client::BinanceClient, utils::load_binance_config};
-use dotenvy::dotenv;
-use tokio::sync::mpsc::{self, Receiver, Sender};
-use tracing::{debug, info};
-
-use crate::{
-    execution_policy::ExecutionPolicy,
-    utils::{create_reqwest_client, get_build_version, init_tracing},
-};
-
+use binance::{Binance, client::BinanceClient, utils::load_binance_config, ws::types::WsEvent};
 use domain::{
     approved_trade::ApprovedTrade, ingress_events::IngressEvent, rejected_trade::RejectedTrade,
     trade_intent::TradeIntent,
 };
+use dotenvy::dotenv;
+use tokio::sync::mpsc;
+use tracing::{debug, info};
 
-pub struct RuntimeChannels {
-    pub ingress_event_tx: Sender<IngressEvent>,
-    pub ingress_event_rx: Receiver<IngressEvent>,
-
-    pub trade_intent_tx: Sender<TradeIntent>,
-    pub trade_intent_rx: Receiver<TradeIntent>,
-
-    pub approved_trade_tx: Sender<ApprovedTrade>,
-    pub approved_trade_rx: Receiver<ApprovedTrade>,
-
-    pub rejected_trade_tx: Sender<RejectedTrade>,
-    pub rejected_trade_rx: Receiver<RejectedTrade>,
-}
-
-pub struct RuntimeDeps {
-    pub telegram_config: adapter_telegram::types::TelegramConfig,
-    pub execution_policy: ExecutionPolicy,
-    pub binance: Binance,
-    pub channels: RuntimeChannels,
-}
+use crate::{
+    execution_policy::ExecutionPolicy,
+    types::{RuntimeChannels, RuntimeDeps},
+    utils::{create_reqwest_client, get_build_version, init_tracing},
+};
 
 pub fn bootstrap() -> RuntimeDeps {
     init_tracing();
@@ -60,9 +39,11 @@ pub fn bootstrap() -> RuntimeDeps {
 
     let execution_policy = ExecutionPolicy::continuation_v1();
 
-    let is_test = build_version == "DEV";
+    let is_test = build_version == "dev";
 
-    if build_version == "DEV" && !is_test {
+    info!(build_version=%build_version,"Environment:");
+
+    if build_version == "dev" && !is_test {
         panic!("🚨 DEV build cannot run in LIVE mode. This is blocked for safety.");
     }
 
@@ -82,6 +63,9 @@ pub fn bootstrap() -> RuntimeDeps {
         "Started with binance mode"
     );
 
+    let (ws_event_tx, ws_event_rx) = mpsc::channel::<WsEvent>(1024);
+    debug!(channel_capacity = 1024, "WsEvent channel created");
+
     RuntimeDeps {
         telegram_config,
         execution_policy,
@@ -95,6 +79,8 @@ pub fn bootstrap() -> RuntimeDeps {
             approved_trade_rx,
             rejected_trade_tx,
             rejected_trade_rx,
+            ws_event_tx,
+            ws_event_rx,
         },
     }
 }

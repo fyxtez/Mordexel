@@ -28,13 +28,7 @@ pub async fn run(
             break;
         };
 
-        process_approved_trade(
-            &exchange,
-            &approved_trade,
-            &entry_model,
-            &sizing_config,
-        )
-        .await;
+        process_approved_trade(&exchange, &approved_trade, &entry_model, &sizing_config).await;
     }
 }
 
