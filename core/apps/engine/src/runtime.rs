@@ -6,7 +6,7 @@ use domain::ingress_events::IngressEvent;
 use tracing::error;
 
 use crate::{
-    pipeline::{builder, evaluator, executor, rejected_logger},
+    pipeline::{builder, evaluator, executor, policy_logger, rejected_logger},
     types::{RuntimeChannels, RuntimeDeps},
     utils::start_server,
 };
@@ -18,6 +18,7 @@ struct RuntimeHandles {
     evaluator: JoinHandle<()>,
     executor: JoinHandle<()>,
     rejected_logger: JoinHandle<()>,
+    policy_logger: JoinHandle<()>,
     http: JoinHandle<()>,
     ws_consumer: JoinHandle<()>,
 }
@@ -88,6 +89,8 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
         builder::run(ingress_event_rx, trade_intent_tx).await;
     });
 
+    let policy_for_logger = execution_policy.clone();
+
     let evaluator = tokio::spawn(async move {
         evaluator::run(
             trade_intent_rx,
@@ -96,6 +99,10 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
             execution_policy,
         )
         .await;
+    });
+
+    let policy_logger = tokio::spawn(async move {
+        policy_logger::run(policy_for_logger).await;
     });
 
     let executor = tokio::spawn(async move {
@@ -122,6 +129,7 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
         builder,
         evaluator,
         executor,
+        policy_logger,
         ws_consumer,
         rejected_logger,
         http,
@@ -146,6 +154,7 @@ async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
         evaluator,
         executor,
         rejected_logger,
+        policy_logger,
         ws_consumer,
         http,
     } = handles;
@@ -157,26 +166,29 @@ async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
         evaluator_result,
         executor_result,
         rejected_logger_result,
+        policy_logger_result,
         http_result,
-        ws_consumer,
+        ws_consumer_result,
     ) = tokio::join!(
         telegram,
         websocket,
         builder,
         evaluator,
         executor,
-        ws_consumer,
         rejected_logger,
+        policy_logger,
+        ws_consumer,
         http,
     );
 
     log_task_panic("telegram", telegram_result);
     log_task_panic("websocket", websocket_result);
-    log_task_panic("websocket", ws_consumer);
+    log_task_panic("ws consumer", ws_consumer_result);
     log_task_panic("builder", builder_result);
     log_task_panic("evaluator", evaluator_result);
     log_task_panic("executor", executor_result);
     log_task_panic("rejected logger", rejected_logger_result);
+    log_task_panic("policy logger", policy_logger_result);
     log_task_panic("http", http_result);
 }
 

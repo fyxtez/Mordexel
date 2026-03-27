@@ -530,6 +530,7 @@ dependencies = [
  "adapter_http",
  "adapter_telegram",
  "binance",
+ "chrono",
  "domain",
  "dotenvy",
  "execution",

@@ -1,3 +1,4 @@
 .env
 untracked
 *.session
+collect_rs.sh

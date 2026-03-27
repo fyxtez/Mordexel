@@ -8,14 +8,7 @@ pub struct RejectedTrade {
 
 #[derive(Debug, Clone)]
 pub enum RejectionReason {
-    ExecutionPolicyDenied,
+    SymbolNotAllowed,
+    BlockedSession,
+    BlockedWeekday,
 }
-
-// TODO: Later...
-// pub enum RejectionReason {
-//     ExecutionPolicyDenied,
-//     DuplicateSignal,
-//     MaxRiskExceeded,
-//     CooldownActive,
-//     ExchangeUnavailable,
-// }
