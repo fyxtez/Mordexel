@@ -57,18 +57,8 @@ pub async fn keepalive_listen_key(
     client: &reqwest::Client,
     rest_base: &str,
     api_key: &str,
-    listen_key: &str,
 ) -> Result<(), BinanceError> {
-    if listen_key.trim().is_empty() {
-        return Err(BinanceError::InvalidInput(
-            "listen key is empty".to_string(),
-        ));
-    }
-
-    let url = format!(
-        "{rest_base}/fapi/v1/listenKey?listenKey={}",
-        urlencoding::encode(listen_key)
-    );
+    let url = format!("{rest_base}/fapi/v1/listenKey");
 
     let response = client
         .put(&url)
@@ -89,7 +79,10 @@ pub async fn keepalive_listen_key(
     }
 
     if !text.trim().is_empty() {
-        println!("keepalive response: {}", mask_middle(&text));
+        tracing::info!(
+            response = %mask_middle(&text),
+            "listen key keepalive response"
+        );
     }
 
     Ok(())
@@ -138,10 +131,10 @@ pub async fn close_listen_key(
         return Err(BinanceError::Api(api_error));
     }
 
-    println!("listenKey closed");
+    tracing::info!("listen key closed");
 
     if !text.trim().is_empty() {
-        println!("close response: {}", text);
+        tracing::info!(response = %text, "close listen key response");
     }
 
     Ok(())

@@ -24,13 +24,13 @@ pub async fn init(
             .request_login_code(&credentials.phone_number, credentials.api_hash.as_str())
             .await?;
 
-        println!("Enter the OTP code: ");
+        tracing::info!("Enter the OTP code:");
         let mut code = String::new();
         io::stdin().read_line(&mut code)?;
         let code = code.trim();
 
         match client.sign_in(&token, code).await {
-            Ok(_) => println!("Logged in successfully!"),
+            Ok(_) => tracing::info!("Logged in successfully!"),
             Err(SignInError::PasswordRequired(password_token)) => {
                 client
                     .check_password(password_token, &credentials.password)

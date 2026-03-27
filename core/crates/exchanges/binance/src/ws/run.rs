@@ -7,7 +7,7 @@ use tracing::{debug, info, warn};
 use crate::{
     error::BinanceError,
     ws::{
-        keys::create_listen_key,
+        keys::{create_listen_key, keepalive_listen_key},
         mask::mask_tail,
         types::{RawOrderTradeUpdate, UserStreamEnvelope, WsEvent, WsEventKind},
     },
@@ -166,6 +166,28 @@ pub async fn run(
 
     let listen_key = create_listen_key(&client, rest_base, api_key).await?;
 
+    let keepalive_client = client.clone();
+    let keepalive_rest_base = rest_base.to_string();
+    let keepalive_api_key = api_key.to_string();
+
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(30 * 60));
+
+        // first tick fires immediately, so consume it
+        interval.tick().await;
+
+        loop {
+            interval.tick().await;
+
+            match keepalive_listen_key(&keepalive_client, &keepalive_rest_base, &keepalive_api_key)
+                .await
+            {
+                Ok(()) => info!("listen key keepalive sent successfully"),
+                Err(err) => warn!(error = %err, "listen key keepalive failed"),
+            }
+        }
+    });
+
     let ws_url = format!("{ws_base}/ws/{}", listen_key);
     let (mut ws, response) = connect_async(&ws_url)
         .await
@@ -178,6 +200,7 @@ pub async fn run(
         ws_url = %masked_ws_url,
         "connected to binance user stream websocket"
     );
+
     while let Some(msg) = ws.next().await {
         match msg {
             Ok(Message::Text(text)) => {

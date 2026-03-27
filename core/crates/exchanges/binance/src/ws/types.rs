@@ -9,6 +9,8 @@ pub struct ListenKeyResponse {
     pub listen_key: String,
 }
 
+// TODO: Binance sometimes sends timestamps ("E", "T") as strings instead of numbers.
+// We normalize both string/number → u64 via custom deserializer to avoid runtime decode errors.
 #[derive(Debug, Deserialize)]
 pub struct UserStreamEnvelope {
     #[serde(rename = "e")]
