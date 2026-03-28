@@ -54,7 +54,7 @@ impl ExecutionPolicy {
         blocked_weekdays.insert(Timeframe::M30, HashSet::from([1])); // 1 = Tuesday
 
         // 1h: Saturday + Sunday → 63.6% / 66.7% WR
-        blocked_weekdays.insert(Timeframe::H1, HashSet::from([5, 6])); // Sat, Sun
+        // blocked_weekdays.insert(Timeframe::H1, HashSet::from([5, 6])); // Sat, Sun
 
         Self {
             allowed,
