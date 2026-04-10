@@ -4,3 +4,4 @@ pub mod exchange;
 pub mod sizing;
 pub mod types;
 pub mod utils;
+pub mod tp_strategy;

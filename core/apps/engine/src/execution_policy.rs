@@ -33,14 +33,14 @@ impl ExecutionPolicy {
             ]),
         );
 
-        allowed.insert(
-            Timeframe::H1,
-            HashSet::from([
-                Symbol::new(SOL, USDT),
-                Symbol::new(BTC, USDT),
-                Symbol::new(ETH, USDT),
-            ]),
-        );
+        // allowed.insert(
+        //     Timeframe::H1,
+        //     HashSet::from([
+        //         Symbol::new(SOL, USDT),
+        //         Symbol::new(BTC, USDT),
+        //         Symbol::new(ETH, USDT),
+        //     ]),
+        // );
 
         // ── Session blocks (UTC hours) ────────────────────
         // 30m: New York session 18-24 UTC → 0.000 avgR, 66.7% WR

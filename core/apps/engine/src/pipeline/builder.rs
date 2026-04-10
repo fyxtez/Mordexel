@@ -7,6 +7,8 @@ pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeInt
     info!("trade_intent_builder started");
 
     while let Some(event) = rx.recv().await {
+        // println!("Stopping execution due to market choppy environment.");
+        // continue;
         let IngressEvent::TelegramMessage(message) = event;
 
         if let Some(signal) = parse_trading_signal(&message.text) {

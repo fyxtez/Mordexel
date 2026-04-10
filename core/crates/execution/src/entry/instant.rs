@@ -1,9 +1,7 @@
 use domain::{approved_trade::ApprovedTrade, side::Side, timeframe::Timeframe};
 
 use crate::{
-    error::ExecutionError,
-    exchange::Exchange,
-    utils::{round_down_to_step, round_up_to_step},
+    error::ExecutionError, exchange::Exchange, tp_strategy::{TpStrategy, resolve_tp_targets}, utils::{round_down_to_step, round_up_to_step}
 };
 
 use tracing::{error, info, warn};
@@ -179,29 +177,13 @@ pub async fn execute<E: Exchange>(
     }
 
     let timeframe = intent.timeframe;
-    let effective_targets: Vec<f64> = if timeframe == Timeframe::H1 {
-        // 1h → ONLY TP1
-        match intent.targets.as_slice() {
-            [tp1, ..] => vec![*tp1],
-            [] => {
-                return Err(ExecutionError::Internal {
-                    message: format!("no take profit targets for {}", symbol),
-                });
-            }
-        }
-    } else {
-        // 30m → continuation logic
-        match intent.targets.as_slice() {
-            [_, tp2, tp3, ..] => vec![*tp2, *tp3],
-            [tp1, tp2] => vec![*tp1, *tp2],
-            [tp1] => vec![*tp1],
-            [] => {
-                return Err(ExecutionError::Internal {
-                    message: format!("no take profit targets for {}", symbol),
-                });
-            }
-        }
-    };
+    let tp_strategy = TpStrategy::Tp2Adjusted;
+
+    let effective_targets = resolve_tp_targets(
+        tp_strategy,
+        &intent.targets,
+        intent.timeframe,
+    );
 
     info!(
         intent_id = %intent.intent_id,
