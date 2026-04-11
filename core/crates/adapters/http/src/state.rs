@@ -5,4 +5,5 @@ use tokio::sync::mpsc;
 pub struct AppState {
     pub tx: mpsc::Sender<IngressEvent>,
     pub is_test: bool,
+    pub ingress_secret: String,
 }

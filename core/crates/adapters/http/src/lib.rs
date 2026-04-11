@@ -12,19 +12,35 @@ use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 use tracing::{error, info};
 
+use axum::http::{HeaderMap, header};
+
 use crate::cors::build_cors_layer;
 use crate::state::AppState;
 use crate::types::{SignalIngressRequest, TradeRequest};
+
+
+fn is_authorized(headers: &HeaderMap, expected_secret: &str) -> bool {
+    let Some(value) = headers.get(header::AUTHORIZATION) else {
+        return false;
+    };
+
+    let Ok(value) = value.to_str() else {
+        return false;
+    };
+
+    value == format!("Bearer {}", expected_secret)
+}
 
 pub async fn start_api_server(
     address: &str,
     port: u16,
     tx: mpsc::Sender<IngressEvent>,
     is_test: bool,
+    ingress_secret:String
 ) -> Result<(), io::Error> {
     let listener = TcpListener::bind(format!("{}:{}", address, port)).await?;
 
-    let state = AppState { tx, is_test };
+    let state = AppState { tx, is_test,ingress_secret };
 
     let router = Router::new()
         .route("/ping", get(ping))
@@ -102,8 +118,12 @@ fn parse_signal_source(raw: &str) -> Result<SignalSource, &'static str> {
 
 async fn ingress_signal(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(payload): Json<SignalIngressRequest>,
-) -> impl IntoResponse {
+) -> impl IntoResponse{
+    if !is_authorized(&headers, &state.ingress_secret) {
+    return (StatusCode::UNAUTHORIZED, "Unauthorized");
+}
     let source = match parse_signal_source(&payload.source) {
         Ok(source) => source,
         Err(msg) => return (StatusCode::BAD_REQUEST, msg),

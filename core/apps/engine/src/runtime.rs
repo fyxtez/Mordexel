@@ -6,7 +6,7 @@ use tracing::error;
 use crate::{
     pipeline::{builder, evaluator, executor, policy_logger, rejected_logger},
     types::{RuntimeChannels, RuntimeDeps},
-    utils::start_server,
+    utils::{load_ingress_secret, start_server},
 };
 
 struct RuntimeHandles {
@@ -109,8 +109,9 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
         rejected_logger::run(rejected_trade_rx).await;
     });
 
+    let ingress_secret = load_ingress_secret();
     let http = tokio::spawn(async move {
-        start_server(ingress_event_tx_clone, is_test).await;
+        start_server(ingress_event_tx_clone, is_test, ingress_secret).await;
     });
 
     RuntimeHandles {

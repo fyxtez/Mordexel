@@ -1,7 +1,12 @@
 use adapter_http::start_api_server;
 use domain::ingress_events::IngressEvent;
+use std::env;
 use tokio::sync::mpsc::Sender;
 use tracing::error;
+
+pub fn load_ingress_secret() -> String {
+    env::var("INGRESS_SECRET").unwrap_or_else(|_| panic!("INGRESS_SECRET must be set"))
+}
 
 pub fn get_build_version() -> &'static str {
     option_env!("BUILD_VERSION").unwrap_or("dev")
@@ -50,7 +55,7 @@ pub fn create_reqwest_client() -> reqwest::Client {
         .unwrap() //Allow unwrap cause request client must exist on startup. 
 }
 
-pub async fn start_server(tx: Sender<IngressEvent>, is_test: bool) {
+pub async fn start_server(tx: Sender<IngressEvent>, is_test: bool,ingress_secret:String) {
     let address = if cfg!(feature = "production") {
         "0.0.0.0"
     } else {
@@ -59,7 +64,7 @@ pub async fn start_server(tx: Sender<IngressEvent>, is_test: bool) {
 
     let port = 8656;
 
-    match start_api_server(address, port, tx, is_test).await {
+    match start_api_server(address, port, tx, is_test, ingress_secret).await {
         Ok(_) => {}
         Err(error) => {
             error!(error = %error, "Failed starting api server.");
