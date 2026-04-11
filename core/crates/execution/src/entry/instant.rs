@@ -1,7 +1,10 @@
 use domain::{approved_trade::ApprovedTrade, side::Side, timeframe::Timeframe};
 
 use crate::{
-    error::ExecutionError, exchange::Exchange, tp_strategy::{TpStrategy, resolve_tp_targets}, utils::{round_down_to_step, round_up_to_step}
+    error::ExecutionError,
+    exchange::Exchange,
+    tp_strategy::{TpStrategy, resolve_tp_targets},
+    utils::{round_down_to_step, round_up_to_step},
 };
 
 use tracing::{error, info, warn};
@@ -179,11 +182,7 @@ pub async fn execute<E: Exchange>(
     let timeframe = intent.timeframe;
     let tp_strategy = TpStrategy::Tp2Adjusted;
 
-    let effective_targets = resolve_tp_targets(
-        tp_strategy,
-        &intent.targets,
-        intent.timeframe,
-    );
+    let effective_targets = resolve_tp_targets(tp_strategy, &intent.targets, intent.timeframe);
 
     info!(
         intent_id = %intent.intent_id,

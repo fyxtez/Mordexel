@@ -14,12 +14,6 @@ pub fn init_tracing() {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| {
             EnvFilter::new(concat!(
                 "info,",
-                "grammers=warn,",
-                "grammers_client=warn,",
-                "grammers_session=warn,",
-                "grammers_mtproto=warn,",
-                "grammers_mtsender=warn,",
-                "grammers_tl_types=warn,",
                 "hyper=warn,",
                 "reqwest=warn,",
                 "teloxide=warn"

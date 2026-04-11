@@ -1,10 +1,19 @@
 #[derive(Debug, Clone)]
 pub enum IngressEvent {
-    TelegramMessage(TelegramMessageEvent),
+    SignalReceived(SignalReceivedEvent),
 }
 
 #[derive(Debug, Clone)]
-pub struct TelegramMessageEvent {
-    pub peer_id: i64,
+pub struct SignalReceivedEvent {
+    pub source: SignalSource,
+    pub external_id: Option<String>,
     pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum SignalSource {
+    Telegram,
+    Http,
+    Replay,
+    Manual,
 }

@@ -6,7 +6,7 @@ use axum::Json;
 use axum::extract::State;
 use axum::routing::{get, post};
 use axum::{Router, body::Body, extract::Request, http::StatusCode, response::IntoResponse};
-use domain::ingress_events::IngressEvent;
+use domain::ingress_events::{IngressEvent, SignalReceivedEvent, SignalSource};
 use std::io;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
@@ -14,7 +14,7 @@ use tracing::{error, info};
 
 use crate::cors::build_cors_layer;
 use crate::state::AppState;
-use crate::types::TradeRequest;
+use crate::types::{SignalIngressRequest, TradeRequest};
 
 pub async fn start_api_server(
     address: &str,
@@ -29,6 +29,7 @@ pub async fn start_api_server(
     let router = Router::new()
         .route("/ping", get(ping))
         .route("/trade", post(trade))
+        .route("/ingress/signal", post(ingress_signal))
         .layer(build_cors_layer())
         .fallback(fallback)
         .with_state(state);
@@ -66,12 +67,11 @@ async fn trade(
     }
     match state
         .tx
-        .send(IngressEvent::TelegramMessage(
-            domain::ingress_events::TelegramMessageEvent {
-                peer_id: 0,
-                text: payload.text,
-            },
-        ))
+        .send(IngressEvent::SignalReceived(SignalReceivedEvent {
+            source: SignalSource::Manual,
+            external_id: None,
+            text: payload.text,
+        }))
         .await
     {
         Ok(_) => (StatusCode::OK, "Trade received"),
@@ -88,4 +88,40 @@ async fn fallback(req: Request<Body>) -> impl IntoResponse {
         StatusCode::NOT_FOUND,
         format!("Endpoint '{}' is not in our API.", path),
     )
+}
+
+fn parse_signal_source(raw: &str) -> Result<SignalSource, &'static str> {
+    match raw.trim().to_ascii_lowercase().as_str() {
+        "telegram" => Ok(SignalSource::Telegram),
+        "http" => Ok(SignalSource::Http),
+        "replay" => Ok(SignalSource::Replay),
+        "manual" => Ok(SignalSource::Manual),
+        _ => Err("unsupported source"),
+    }
+}
+
+async fn ingress_signal(
+    State(state): State<AppState>,
+    Json(payload): Json<SignalIngressRequest>,
+) -> impl IntoResponse {
+    let source = match parse_signal_source(&payload.source) {
+        Ok(source) => source,
+        Err(msg) => return (StatusCode::BAD_REQUEST, msg),
+    };
+
+    match state
+        .tx
+        .send(IngressEvent::SignalReceived(SignalReceivedEvent {
+            source,
+            external_id: payload.external_id,
+            text: payload.text,
+        }))
+        .await
+    {
+        Ok(_) => (StatusCode::OK, "Signal received"),
+        Err(err) => {
+            error!(error=%err, "Failed to send ingress signal to engine channel");
+            (StatusCode::INTERNAL_SERVER_ERROR, "Engine unavailable")
+        }
+    }
 }

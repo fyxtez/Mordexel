@@ -24,7 +24,6 @@ pub struct RuntimeChannels {
 }
 
 pub struct RuntimeDeps {
-    pub telegram_config: adapter_telegram::types::TelegramConfig,
     pub execution_policy: ExecutionPolicy,
     pub binance: Binance,
     pub channels: RuntimeChannels,

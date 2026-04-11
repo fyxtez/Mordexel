@@ -1,8 +1,6 @@
 use execution::{entry::entry_model::EntryModel, sizing::types::MarginSizingConfig};
-use tokio::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
 
-use domain::ingress_events::IngressEvent;
 use tracing::error;
 
 use crate::{
@@ -12,7 +10,6 @@ use crate::{
 };
 
 struct RuntimeHandles {
-    telegram: JoinHandle<()>,
     websocket: JoinHandle<()>,
     builder: JoinHandle<()>,
     evaluator: JoinHandle<()>,
@@ -30,7 +27,6 @@ pub async fn run_runtime(runtime: RuntimeDeps) {
 
 fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     let RuntimeDeps {
-        telegram_config,
         execution_policy,
         binance,
         channels,
@@ -52,7 +48,6 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     let is_test = binance.client.is_test;
 
     let ingress_event_tx_clone = ingress_event_tx.clone();
-    let telegram_ingress_tx = ingress_event_tx.clone();
 
     let sizing_config = create_sizing_config();
 
@@ -63,11 +58,6 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     } else {
         "wss://fstream.binance.com".to_string()
     };
-
-    let telegram = tokio::spawn(async move {
-        let tx: Sender<IngressEvent> = telegram_ingress_tx;
-        adapter_telegram::run(telegram_config, tx).await;
-    });
 
     let websocket = tokio::spawn(async move {
         if let Err(err) = binance::ws::run::run(&rest_base, &api_key, &ws_base, ws_event_tx).await {
@@ -124,7 +114,6 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     });
 
     RuntimeHandles {
-        telegram,
         websocket,
         builder,
         evaluator,
@@ -148,7 +137,6 @@ fn create_sizing_config() -> MarginSizingConfig {
 
 async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
     let RuntimeHandles {
-        telegram,
         websocket,
         builder,
         evaluator,
@@ -160,17 +148,15 @@ async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
     } = handles;
 
     let (
-        telegram_result,
         websocket_result,
         builder_result,
         evaluator_result,
         executor_result,
         rejected_logger_result,
         policy_logger_result,
-        http_result,
         ws_consumer_result,
+        http_result,
     ) = tokio::join!(
-        telegram,
         websocket,
         builder,
         evaluator,
@@ -181,7 +167,6 @@ async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
         http,
     );
 
-    log_task_panic("telegram", telegram_result);
     log_task_panic("websocket", websocket_result);
     log_task_panic("ws consumer", ws_consumer_result);
     log_task_panic("builder", builder_result);

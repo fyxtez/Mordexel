@@ -1,4 +1,3 @@
-use adapter_telegram::utils::load_telegram_config;
 use binance::{Binance, client::BinanceClient, utils::load_binance_config, ws::types::WsEvent};
 use domain::{
     approved_trade::ApprovedTrade, ingress_events::IngressEvent, rejected_trade::RejectedTrade,
@@ -35,8 +34,6 @@ pub fn bootstrap() -> RuntimeDeps {
     let (rejected_trade_tx, rejected_trade_rx) = mpsc::channel::<RejectedTrade>(1024);
     debug!(channel_capacity = 1024, "RejectedTrade channel created");
 
-    let telegram_config = load_telegram_config();
-
     let execution_policy = ExecutionPolicy::continuation_v1();
 
     let is_test = build_version == "dev";
@@ -67,7 +64,6 @@ pub fn bootstrap() -> RuntimeDeps {
     debug!(channel_capacity = 1024, "WsEvent channel created");
 
     RuntimeDeps {
-        telegram_config,
         execution_policy,
         binance,
         channels: RuntimeChannels {

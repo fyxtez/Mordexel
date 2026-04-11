@@ -7,12 +7,10 @@ pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeInt
     info!("trade_intent_builder started");
 
     while let Some(event) = rx.recv().await {
-        // println!("Stopping execution due to market choppy environment.");
-        // continue;
-        let IngressEvent::TelegramMessage(message) = event;
+        let IngressEvent::SignalReceived(message) = event;
 
         if let Some(signal) = parse_trading_signal(&message.text) {
-            info!(?signal, "parsed trading signal");
+            info!(?signal, source = ?message.source, "parsed trading signal");
 
             match TradeIntent::builder(signal.symbol)
                 .side(signal.side)
@@ -23,7 +21,11 @@ pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeInt
                 .build()
             {
                 Ok(intent) => {
-                    info!(intent_id = %intent.intent_id, "built trade intent");
+                    info!(
+                        intent_id = %intent.intent_id,
+                        source = ?message.source,
+                        "built trade intent"
+                    );
 
                     if let Err(err) = tx.send(intent).await {
                         error!(error = %err, "failed to send trade intent");
@@ -34,6 +36,12 @@ pub async fn run(mut rx: mpsc::Receiver<IngressEvent>, tx: mpsc::Sender<TradeInt
                     warn!(error = %err, "failed to build trade intent");
                 }
             }
+        } else {
+            warn!(
+                source = ?message.source,
+                external_id = ?message.external_id,
+                "ignored ingress event because it was not a parseable signal"
+            );
         }
     }
 

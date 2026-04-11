@@ -2,7 +2,6 @@
 members = [
   "apps/engine",
   "crates/adapters/http",
-  "crates/adapters/telegram",
   "crates/domain",
   "crates/exchanges/binance",
   "crates/execution",
