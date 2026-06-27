@@ -10,14 +10,14 @@ use crate::{
 };
 
 struct RuntimeHandles {
-    websocket: JoinHandle<()>,
+    // websocket: JoinHandle<()>,
     builder: JoinHandle<()>,
     evaluator: JoinHandle<()>,
     executor: JoinHandle<()>,
     rejected_logger: JoinHandle<()>,
     policy_logger: JoinHandle<()>,
     http: JoinHandle<()>,
-    ws_consumer: JoinHandle<()>,
+    // ws_consumer: JoinHandle<()>,
 }
 
 pub async fn run_runtime(runtime: RuntimeDeps) {
@@ -59,21 +59,21 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
         "wss://fstream.binance.com".to_string()
     };
 
-    let websocket = tokio::spawn(async move {
-        if let Err(err) = binance::ws::run::run(&rest_base, &api_key, &ws_base, ws_event_tx).await {
-            tracing::error!(error = %err, "binance websocket runtime stopped");
-        }
-    });
+    // let websocket = tokio::spawn(async move {
+    //     if let Err(err) = binance::ws::run::run(&rest_base, &api_key, &ws_base, ws_event_tx).await {
+    //         tracing::error!(error = %err, "binance websocket runtime stopped");
+    //     }
+    // });
 
-    let ws_consumer = tokio::spawn(async move {
-        while let Some(event) = ws_event_rx.recv().await {
-            tracing::info!("**************************");
-            tracing::info!(?event, "received ws event");
-            tracing::info!("**************************");
-        }
+    // let ws_consumer = tokio::spawn(async move {
+    //     while let Some(event) = ws_event_rx.recv().await {
+    //         tracing::info!("**************************");
+    //         tracing::info!(?event, "received ws event");
+    //         tracing::info!("**************************");
+    //     }
 
-        tracing::warn!("ws event consumer stopped");
-    });
+    //     tracing::warn!("ws event consumer stopped");
+    // });
 
     let builder = tokio::spawn(async move {
         builder::run(ingress_event_rx, trade_intent_tx).await;
@@ -115,12 +115,12 @@ fn spawn_runtime_tasks(runtime: RuntimeDeps) -> RuntimeHandles {
     });
 
     RuntimeHandles {
-        websocket,
+        // websocket,
         builder,
         evaluator,
         executor,
         policy_logger,
-        ws_consumer,
+        // ws_consumer,
         rejected_logger,
         http,
     }
@@ -138,38 +138,38 @@ fn create_sizing_config() -> MarginSizingConfig {
 
 async fn wait_for_runtime_tasks(handles: RuntimeHandles) {
     let RuntimeHandles {
-        websocket,
+        // websocket,
         builder,
         evaluator,
         executor,
         rejected_logger,
         policy_logger,
-        ws_consumer,
+        // ws_consumer,
         http,
     } = handles;
 
     let (
-        websocket_result,
+        // websocket_result,
         builder_result,
         evaluator_result,
         executor_result,
         rejected_logger_result,
         policy_logger_result,
-        ws_consumer_result,
+        // ws_consumer_result,
         http_result,
     ) = tokio::join!(
-        websocket,
+        // websocket,
         builder,
         evaluator,
         executor,
         rejected_logger,
         policy_logger,
-        ws_consumer,
+        // ws_consumer,
         http,
     );
 
-    log_task_panic("websocket", websocket_result);
-    log_task_panic("ws consumer", ws_consumer_result);
+    // log_task_panic("websocket", websocket_result);
+    // log_task_panic("ws consumer", ws_consumer_result);
     log_task_panic("builder", builder_result);
     log_task_panic("evaluator", evaluator_result);
     log_task_panic("executor", executor_result);
