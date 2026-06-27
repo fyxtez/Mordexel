@@ -188,6 +188,7 @@ pub async fn execute<E: Exchange>(
         intent_id = %intent.intent_id,
         symbol = %symbol,
         timeframe = %timeframe,
+        //TODO: not a TP1_ONLY, but rather tp_strategy
         mode = if timeframe == Timeframe::H1 { "TP1_ONLY" } else { "FULL" },
         "execution mode selected"
     );

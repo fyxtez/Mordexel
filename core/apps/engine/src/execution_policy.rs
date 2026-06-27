@@ -26,21 +26,22 @@ impl ExecutionPolicy {
         allowed.insert(
             Timeframe::M30,
             HashSet::from([
-                Symbol::new(ADA, USDT),
-                Symbol::new(SOL, USDT),
                 Symbol::new(XRP, USDT),
-                Symbol::new(TRX, USDT),
+                Symbol::new(SOL, USDT),
+                Symbol::new(ETH, USDT),
+                Symbol::new(BNB, USDT),
+                // Symbol::new(TRX, USDT),
             ]),
         );
 
-        // allowed.insert(
-        //     Timeframe::H1,
-        //     HashSet::from([
-        //         Symbol::new(SOL, USDT),
-        //         Symbol::new(BTC, USDT),
-        //         Symbol::new(ETH, USDT),
-        //     ]),
-        // );
+        allowed.insert(
+            Timeframe::H1,
+            HashSet::from([
+                Symbol::new(SOL, USDT),
+                Symbol::new(BTC, USDT),
+                // Symbol::new(ETH, USDT),
+            ]),
+        );
 
         // ── Session blocks (UTC hours) ────────────────────
         // 30m: New York session 18-24 UTC → 0.000 avgR, 66.7% WR
